@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"surface-bright":"#38393c","background":"#121316","secondary-container":"#7508a5","primary-container":"#4b8eff","secondary-fixed":"#f6d9ff","surface-container-highest":"#343538","error-container":"#93000a","inverse-on-surface":"#2f3034","surface-container-low":"#1b1b1f","on-primary":"#002e69","on-surface":"#e3e2e6","surface-container":"#1f1f23","secondary-fixed-dim":"#e8b3ff","primary-fixed":"#d8e2ff","surface-container-high":"#292a2d","primary-fixed-dim":"#adc6ff","on-tertiary-container":"#00320e","on-tertiary-fixed":"#002107","tertiary-fixed":"#72fe88","inverse-surface":"#e3e2e6","tertiary-container":"#00a741","inverse-primary":"#005bc1","on-error-container":"#ffdad6","surface-tint":"#adc6ff","tertiary-fixed-dim":"#53e16f","surface-dim":"#121316","secondary":"#e8b3ff","outline":"#8b90a0","on-tertiary":"#003911","primary":"#adc6ff","on-primary-fixed":"#001a41","on-primary-container":"#00285c","surface":"#121316","on-secondary-fixed-variant":"#7201a2","on-secondary-fixed":"#310048","outline-variant":"#414755","on-secondary":"#510074","error":"#ffb4ab","on-secondary-container":"#e19fff","surface-container-lowest":"#0d0e11","on-background":"#e3e2e6","on-tertiary-fixed-variant":"#00531c","on-surface-variant":"#c1c6d7","on-primary-fixed-variant":"#004493","on-error":"#690005","tertiary":"#53e16f","surface-variant":"#343538"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"space-lg":"1.5rem","margin-tablet":"1.5rem","gutter-desktop":"1.5rem","space-md":"1rem","space-sm":"0.5rem","margin-desktop":"2.5rem","space-xl":"2.25rem","space-xs":"0.25rem","margin":"1rem","gutter":"1rem"},"fontFamily":{"headline-sm":["Plus Jakarta Sans"],"body-sm":["Plus Jakarta Sans"],"body-md":["Plus Jakarta Sans"],"display-xl":["Plus Jakarta Sans"],"caption":["Plus Jakarta Sans"],"headline-lg":["Plus Jakarta Sans"],"display-xl-mobile":["Plus Jakarta Sans"],"body-lg":["Plus Jakarta Sans"],"label-md":["Plus Jakarta Sans"],"headline-md":["Plus Jakarta Sans"],"headline-lg-mobile":["Plus Jakarta Sans"],"label-sm":["Plus Jakarta Sans"]},"fontSize":{"headline-sm":["18px",{"lineHeight":"24px","letterSpacing":"-0.01em","fontWeight":"600"}],"body-sm":["13px",{"lineHeight":"18px","letterSpacing":"0.005em","fontWeight":"400"}],"body-md":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"400"}],"display-xl":["56px",{"lineHeight":"64px","letterSpacing":"-0.03em","fontWeight":"700"}],"caption":["10px",{"lineHeight":"12px","letterSpacing":"0.025em","fontWeight":"500"}],"headline-lg":["32px",{"lineHeight":"38px","letterSpacing":"-0.02em","fontWeight":"600"}],"display-xl-mobile":["36px",{"lineHeight":"42px","letterSpacing":"-0.025em","fontWeight":"700"}],"body-lg":["16px",{"lineHeight":"24px","letterSpacing":"-0.005em","fontWeight":"400"}],"label-md":["12px",{"lineHeight":"16px","letterSpacing":"0.01em","fontWeight":"500"}],"headline-md":["22px",{"lineHeight":"28px","letterSpacing":"-0.015em","fontWeight":"600"}],"headline-lg-mobile":["26px",{"lineHeight":"32px","letterSpacing":"-0.015em","fontWeight":"600"}],"label-sm":["11px",{"lineHeight":"14px","letterSpacing":"0.02em","fontWeight":"600"}]}}}}</script></head><body class="bg-surface font-body-md text-on-surface antialiased selection:bg-primary-container selection:text-on-primary"><aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-lowest/80 backdrop-blur-2xl z-50 flex flex-col justify-between py-space-md shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex flex-col gap-space-lg px-space-md"><div class="flex items-center gap-space-sm px-space-xs pt-space-xs"><div class="w-9 h-9 rounded-xl bg-surface-container-high flex items-center justify-center shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22)]"><span class="material-symbols-outlined text-primary text-[22px]">neurology</span></div><div class="flex flex-col"><div class="flex items-center gap-space-xs"><span class="font-headline-sm text-headline-sm text-on-surface font-bold tracking-tight">JARVIS</span><span class="font-caption text-caption uppercase px-1.5 py-0.5 rounded-full bg-surface-container-high text-primary font-semibold">v4.2</span></div><span class="font-label-sm text-label-sm text-on-surface-variant">Spatial Neural Core</span></div></div><div class="p-space-sm rounded-xl bg-surface-container/60 backdrop-blur-md flex flex-col gap-space-xs shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]"><div class="flex items-center justify-between"><span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>Neural Link</span><span class="font-label-sm text-label-sm text-tertiary font-medium">Online</span></div><div class="flex items-center justify-between"><span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px] text-primary">phone_iphone</span>iPhone Bridge</span><span class="font-label-sm text-label-sm text-primary font-medium">Synced</span></div></div><nav class="flex flex-col gap-1.5" data-active-classes="bg-primary-container text-on-primary-container font-semibold shadow-[0_4px_16px_-2px_rgba(75,142,255,0.3)]"><a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-xl font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="chat-voice" href="#"><span class="material-symbols-outlined text-[20px]">mic</span><span>Chat &amp; Voice</span></a><a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-xl font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="long-term-memory" href="#"><span class="material-symbols-outlined text-[20px]">psychology</span><span>Long-Term Memory</span></a><a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-xl font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="system-controls" href="#"><span class="material-symbols-outlined text-[20px]">terminal</span><span>System Controls</span></a><a aria-current="page" class="flex items-center gap-space-sm px-space-md py-2.5 rounded-xl transition-all bg-primary-container text-on-primary-container font-semibold shadow-[0_4px_16px_-2px_rgba(75,142,255,0.3)]" data-path="productivity-hub" href="#"><span class="material-symbols-outlined text-[20px]">grid_view</span><span>Productivity Hub</span></a><a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-xl font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="settings-bridge" href="#"><span class="material-symbols-outlined text-[20px]">tune</span><span>Settings &amp; Bridge</span></a></nav></div><div class="px-space-md flex flex-col gap-space-sm"><div class="p-space-sm rounded-xl bg-surface-container-low/70 flex items-center justify-between"><div class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-[18px]">memory</span><div class="flex flex-col"><span class="font-label-sm text-label-sm text-on-surface-variant">Context Cache</span><span class="font-label-md text-label-md text-on-surface font-semibold">128k / 200k</span></div></div><div class="w-10 h-1.5 rounded-full bg-surface-container-highest overflow-hidden"><div class="h-full w-3/5 bg-primary rounded-full"></div></div></div></div></aside><div class="pl-72"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-lowest/70 backdrop-blur-2xl z-40 flex items-center justify-between px-space-md shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex items-center gap-space-md"><div class="flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-high/80 border border-white/10"><span class="w-2.5 h-2.5 rounded-full bg-tertiary shadow-[0_0_8px_#53e16f]"></span><span class="font-label-sm text-label-sm text-on-surface font-medium uppercase tracking-wider">Ready</span></div><div class="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-low"><span class="material-symbols-outlined text-[15px] text-tertiary">bolt</span><span class="font-label-sm text-label-sm text-on-surface-variant">GPT-4o Omnimodal (Local Stream)</span></div></div><div class="flex items-center gap-space-sm"><button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-high/80 hover:bg-surface-bright hover:text-on-surface text-on-surface-variant transition-all font-label-sm text-label-sm" type="button"><span class="material-symbols-outlined text-[16px]">picture_in_picture_alt</span><span>Floating Widget</span></button><div class="h-4 w-px bg-surface-container-highest"></div><div class="flex items-center gap-2"><button class="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" type="button"><span class="material-symbols-outlined text-[18px]">volume_up</span></button><button class="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" type="button"><span class="material-symbols-outlined text-[18px]">notifications</span></button></div><div class="h-4 w-px bg-surface-container-highest"></div><div class="flex items-center"><button class="w-9 h-8 flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[16px]">minimize</span></button><button class="w-9 h-8 flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[14px]">crop_square</span></button><button class="w-9 h-8 flex items-center justify-center text-on-surface-variant hover:bg-error-container hover:text-on-error-container transition-colors" type="button"><span class="material-symbols-outlined text-[16px]">close</span></button></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center ml-1"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="w-full pt-16 bg-surface"><div class="flex flex-col w-full">
+<!-- Dynamic Spatial Ambient Backdrop Effects -->
+<div class="relative w-full overflow-hidden px-space-md lg:px-margin-desktop py-space-lg flex flex-col gap-space-xl">
+<div class="pointer-events-none absolute -top-40 right-10 w-[520px] h-[520px] rounded-full bg-gradient-to-br from-primary-container/15 via-secondary/10 to-transparent blur-3xl opacity-70"></div>
+<div class="pointer-events-none absolute top-1/2 -left-32 w-[440px] h-[440px] rounded-full bg-gradient-to-tr from-tertiary-container/10 via-primary/5 to-transparent blur-3xl opacity-50"></div>
+<!-- Header & Productivity Quick Metrics Tier -->
+<div class="relative flex flex-col xl:flex-row xl:items-end justify-between gap-space-md">
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center gap-space-sm">
+<span class="font-caption text-caption uppercase tracking-wider text-primary font-semibold px-2 py-0.5 rounded-full bg-surface-container-high/90">Autonomous Orchestration</span>
+<span class="font-caption text-caption text-on-surface-variant flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span> Sync Cycle: 1.2s Local IPC
+          </span>
+</div>
+<div class="flex items-baseline gap-space-sm">
+<h1 class="font-headline-lg text-headline-lg text-on-surface tracking-tight font-bold">Productivity Hub</h1>
+<span class="font-label-md text-label-md text-on-surface-variant">JARVIS Spatial Subsystem v4.2</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-2xl">
+          Unified cognitive workspace coordinating proactive neural reminders, markdown scratchpads, and deterministic PC automation macros.
+        </p>
+</div>
+<!-- Live Macro Engine Status Platter -->
+<div class="flex items-center gap-space-md p-space-sm rounded-xl bg-surface-container-low/80 backdrop-blur-xl shadow-md">
+<div class="flex items-center gap-space-sm px-space-xs">
+<div class="w-9 h-9 rounded-lg bg-surface-container flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[20px]">bolt</span>
+</div>
+<div class="flex flex-col">
+<span class="font-caption text-caption text-on-surface-variant uppercase tracking-wider">Active Routines</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">4 Online</span>
+</div>
+</div>
+<div class="h-8 w-px bg-surface-container-highest"></div>
+<div class="flex items-center gap-space-sm px-space-xs">
+<div class="w-9 h-9 rounded-lg bg-surface-container flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined text-[20px]">task_alt</span>
+</div>
+<div class="flex flex-col">
+<span class="font-caption text-caption text-on-surface-variant uppercase tracking-wider">Queue Health</span>
+<span class="font-headline-sm text-headline-sm text-tertiary font-semibold">99.8% Sync</span>
+</div>
+</div>
+</div>
+</div>
+<!-- PRIMARY MODULE 1: REMINDERS MODULE -->
+<section class="flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[17px]">notifications_active</span>
+</div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold tracking-tight">Proactive Reminders &amp; Telemetry Alerts</h2>
+</div>
+<span class="font-caption text-caption uppercase text-on-surface-variant bg-surface-container-high px-2 py-0.5 rounded-full">3 Tasks in Buffer</span>
+</div>
+<!-- Add Natural Language Reminder Input Bar Platter -->
+<div class="p-space-md rounded-xl bg-surface-container/70 backdrop-blur-2xl shadow-xl flex flex-col gap-space-sm">
+<div class="flex flex-col lg:flex-row items-stretch lg:items-center gap-space-sm">
+<!-- Text Input Field -->
+<div class="relative flex-1">
+<span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">neurology</span>
+<input class="w-full h-11 pl-10 pr-3 rounded-lg bg-surface-container-lowest/80 text-on-surface placeholder:text-on-surface-variant/50 font-body-md text-body-md focus:outline-none focus:bg-surface-container-high/90 transition-all" id="reminderText" placeholder="e.g., Call Mark about drone telemetry" type="text"/>
+</div>
+<!-- Time Input Field -->
+<div class="relative lg:w-72">
+<span class="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">schedule</span>
+<input class="w-full h-11 pl-10 pr-3 rounded-lg bg-surface-container-lowest/80 text-on-surface placeholder:text-on-surface-variant/50 font-body-md text-body-md focus:outline-none focus:bg-surface-container-high/90 transition-all" id="reminderTime" placeholder="tomorrow at 10:00 AM" type="text"/>
+</div>
+<!-- Set Reminder Action Button with Cyan Glow -->
+<button class="h-11 px-space-lg rounded-lg bg-primary-container text-on-primary-container font-label-md text-label-md font-semibold flex items-center justify-center gap-2 hover:bg-primary transition-all duration-200 shadow-[0_0_24px_rgba(75,142,255,0.45)] active:scale-[0.98]" id="setReminderBtn" type="button">
+<span class="material-symbols-outlined text-[18px]">add_alert</span>
+<span>Set Reminder</span>
+</button>
+</div>
+<!-- Quick Chips Bar -->
+<div class="flex items-center flex-wrap gap-2 pt-1">
+<span class="font-caption text-caption text-on-surface-variant uppercase tracking-wider mr-1">Quick Offsets:</span>
+<button class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface-variant hover:text-on-surface hover:bg-surface-bright text-label-sm font-label-sm transition-all" onclick="setQuickTime('in 15 min')" type="button">in 15 min</button>
+<button class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface-variant hover:text-on-surface hover:bg-surface-bright text-label-sm font-label-sm transition-all" onclick="setQuickTime('in 1 hr')" type="button">in 1 hr</button>
+<button class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface-variant hover:text-on-surface hover:bg-surface-bright text-label-sm font-label-sm transition-all" onclick="setQuickTime('tonight 8pm')" type="button">tonight 8pm</button>
+<button class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface-variant hover:text-on-surface hover:bg-surface-bright text-label-sm font-label-sm transition-all" onclick="setQuickTime('tomorrow 9am')" type="button">tomorrow 9am</button>
+</div>
+</div>
+<!-- Pending Reminders List Grid -->
+<div class="flex flex-col gap-space-xs" id="remindersContainer">
+<!-- Reminder #1 -->
+<div class="group p-space-md rounded-xl bg-surface-container-low/70 hover:bg-surface-container/70 backdrop-blur-xl transition-all duration-200 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-space-md" id="reminder-card-1">
+<div class="flex items-start gap-space-md min-w-0">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary mt-0.5 shrink-0">
+<span class="material-symbols-outlined text-[20px]">calendar_today</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-space-sm flex-wrap">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold truncate">Client Review &amp; Architecture Briefing</h3>
+<span class="px-2.5 py-0.5 rounded-full bg-tertiary-container/30 text-tertiary font-label-sm text-label-sm flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary animate-pulse"></span> Scheduled - In 45 mins
+                </span>
+</div>
+<div class="flex items-center gap-3 text-on-surface-variant font-body-sm text-body-sm mt-0.5">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[15px]">event</span> Today, 4:30 PM</span>
+<span>•</span>
+<span class="flex items-center gap-1 text-primary"><span class="material-symbols-outlined text-[15px]">headphones</span> Spatial Audio Chime Enabled</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 self-end md:self-center shrink-0">
+<button class="px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface-variant hover:text-on-surface hover:bg-surface-bright font-label-sm text-label-sm transition-all flex items-center gap-1.5" onclick="snoozeReminder('reminder-card-1')" type="button">
+<span class="material-symbols-outlined text-[16px]">snooze</span>
+<span>Snooze 10m</span>
+</button>
+<button class="px-3 py-1.5 rounded-lg bg-surface-container-highest text-on-surface-variant hover:text-error hover:bg-error-container/40 font-label-sm text-label-sm transition-all flex items-center gap-1.5" onclick="dismissReminder('reminder-card-1')" type="button">
+<span class="material-symbols-outlined text-[16px]">check_circle</span>
+<span>Dismiss / Delete</span>
+</button>
+</div>
+</div>
+<!-- Reminder #2 -->
+<div class="group p-space-md rounded-xl bg-surface-container-low/70 hover:bg-surface-container/70 backdrop-blur-xl transition-all duration-200 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-space-md" id="reminder-card-2">
+<div class="flex items-start gap-space-md min-w-0">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary mt-0.5 shrink-0">
+<span class="material-symbols-outlined text-[20px]">battery_charging_full</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-space-sm flex-wrap">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold truncate">Recharge Mark 85 auxiliary power cells</h3>
+<span class="px-2.5 py-0.5 rounded-full bg-primary-container/20 text-primary font-label-sm text-label-sm">
+                  Scheduled
+                </span>
+</div>
+<div class="flex items-center gap-3 text-on-surface-variant font-body-sm text-body-sm mt-0.5">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[15px]">event</span> Today, 7:00 PM</span>
+<span>•</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[15px]">cable</span> Hardware Dock B-7</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 self-end md:self-center shrink-0">
+<button class="px-3 py-1.5 rounded-lg bg-surface-container-highest text-on-surface-variant hover:text-error hover:bg-error-container/40 font-label-sm text-label-sm transition-all flex items-center gap-1.5" onclick="dismissReminder('reminder-card-2')" type="button">
+<span class="material-symbols-outlined text-[16px]">delete</span>
+<span>Dismiss / Delete</span>
+</button>
+</div>
+</div>
+<!-- Reminder #3 (Overdue / Missed) -->
+<div class="group p-space-md rounded-xl bg-surface-container-low/70 hover:bg-surface-container/70 backdrop-blur-xl transition-all duration-200 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-space-md" id="reminder-card-3">
+<div class="flex items-start gap-space-md min-w-0">
+<div class="w-10 h-10 rounded-lg bg-error-container/30 text-error flex items-center justify-center mt-0.5 shrink-0">
+<span class="material-symbols-outlined text-[20px]">warning</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-space-sm flex-wrap">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold truncate">Weekly Backup to NAS Storage</h3>
+<span class="px-2.5 py-0.5 rounded-full bg-error-container/50 text-error font-label-sm text-label-sm font-semibold flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span> Missed / Overdue
+                </span>
+</div>
+<div class="flex items-center gap-3 text-on-surface-variant font-body-sm text-body-sm mt-0.5">
+<span class="flex items-center gap-1 text-error"><span class="material-symbols-outlined text-[15px]">history</span> Yesterday, 11:00 PM</span>
+<span>•</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[15px]">dns</span> Volume //SAN-RAID01</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 self-end md:self-center shrink-0">
+<button class="px-3.5 py-1.5 rounded-lg bg-tertiary-container text-on-tertiary-container hover:bg-tertiary font-label-sm text-label-sm font-semibold transition-all flex items-center gap-1.5 shadow-[0_0_12px_rgba(0,167,65,0.3)]" onclick="runBackupAction('reminder-card-3')" type="button">
+<span class="material-symbols-outlined text-[16px]">play_arrow</span>
+<span>Run Now</span>
+</button>
+<button class="px-3 py-1.5 rounded-lg bg-surface-container-highest text-on-surface-variant hover:text-on-surface font-label-sm text-label-sm transition-all" onclick="dismissReminder('reminder-card-3')" type="button">
+<span>Dismiss</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- TWO-COLUMN WORKSPACE: NOTES & ROUTINES -->
+<div class="grid grid-cols-1 xl:grid-cols-12 gap-space-lg">
+<!-- PRIMARY MODULE 2: QUICK NOTES MODULE (5 Cols) -->
+<section class="xl:col-span-5 flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[17px]">edit_note</span>
+</div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold tracking-tight">Quick Scratchpad Notes</h2>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">markdown</span> MD Ready
+          </span>
+</div>
+<!-- Add Scratchpad Note Box -->
+<div class="p-space-md rounded-xl bg-surface-container/70 backdrop-blur-2xl shadow-xl flex flex-col gap-space-sm">
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm px-1">
+<span>Spatial Buffer Input</span>
+<div class="flex items-center gap-2">
+<button class="hover:text-on-surface p-1 rounded hover:bg-surface-container-high transition-colors" onclick="insertMarkdown('**bold**')" title="Bold" type="button">
+<span class="material-symbols-outlined text-[16px]">format_bold</span>
+</button>
+<button class="hover:text-on-surface p-1 rounded hover:bg-surface-container-high transition-colors" onclick="insertMarkdown('`code`')" title="Inline Code" type="button">
+<span class="material-symbols-outlined text-[16px]">code</span>
+</button>
+<button class="hover:text-on-surface p-1 rounded hover:bg-surface-container-high transition-colors" onclick="insertMarkdown('- list item')" title="Bullet List" type="button">
+<span class="material-symbols-outlined text-[16px]">format_list_bulleted</span>
+</button>
+</div>
+</div>
+<textarea class="w-full p-3 rounded-lg bg-surface-container-lowest/80 text-on-surface placeholder:text-on-surface-variant/40 font-body-sm text-body-sm resize-none focus:outline-none focus:bg-surface-container-high/90 transition-all leading-relaxed font-mono" id="noteScratchpad" placeholder="Type your notes in Markdown syntax (e.g. # Architecture, - Subsystem check, `socket_open`)..." rows="4"></textarea>
+<div class="flex items-center justify-between pt-1">
+<span class="font-caption text-caption text-on-surface-variant" id="noteCharCount">0 characters</span>
+<button class="h-9 px-space-md rounded-lg bg-primary text-on-primary font-label-md text-label-md font-semibold flex items-center gap-1.5 hover:bg-primary-fixed transition-all active:scale-[0.98] shadow-md" onclick="saveScratchpadNote()" type="button">
+<span class="material-symbols-outlined text-[17px]">bookmark_add</span>
+<span>Save Note</span>
+</button>
+</div>
+</div>
+<!-- Saved Notes Stack -->
+<div class="flex flex-col gap-space-sm" id="notesContainer">
+<!-- Note 1 -->
+<div class="p-space-md rounded-xl bg-surface-container-low/70 backdrop-blur-xl shadow-md flex flex-col gap-space-sm transition-all hover:bg-surface-container/70" id="note-card-1">
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Saved today • 1:15 PM</span>
+</div>
+<div class="flex items-center gap-1">
+<button class="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" onclick="copyNoteText('note-content-1', this)" title="Copy Note" type="button">
+<span class="material-symbols-outlined text-[17px]">content_copy</span>
+</button>
+<button class="p-1.5 rounded-lg text-on-surface-variant hover:text-error hover:bg-error-container/30 transition-colors" onclick="deleteNote('note-card-1')" title="Delete Note" type="button">
+<span class="material-symbols-outlined text-[17px]">delete</span>
+</button>
+</div>
+</div>
+<p class="font-body-md text-body-md text-on-surface font-mono bg-surface-container-lowest/60 p-3 rounded-lg leading-relaxed select-all" id="note-content-1">Telemetry Server Ports: Primary Socket 8080, WebSocket 9001, Metrics Prometheus 9090.</p>
+<div class="flex items-center gap-2 pt-1">
+<span class="px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-caption text-caption uppercase">Networking</span>
+<span class="px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-caption text-caption uppercase">Local IPC</span>
+</div>
+</div>
+<!-- Note 2 -->
+<div class="p-space-md rounded-xl bg-surface-container-low/70 backdrop-blur-xl shadow-md flex flex-col gap-space-sm transition-all hover:bg-surface-container/70" id="note-card-2">
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">Saved yesterday • 6:40 PM</span>
+</div>
+<div class="flex items-center gap-1">
+<button class="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" onclick="copyNoteText('note-content-2', this)" title="Copy Note" type="button">
+<span class="material-symbols-outlined text-[17px]">content_copy</span>
+</button>
+<button class="p-1.5 rounded-lg text-on-surface-variant hover:text-error hover:bg-error-container/30 transition-colors" onclick="deleteNote('note-card-2')" title="Delete Note" type="button">
+<span class="material-symbols-outlined text-[17px]">delete</span>
+</button>
+</div>
+</div>
+<div class="font-body-md text-body-md text-on-surface bg-surface-container-lowest/60 p-3 rounded-lg leading-relaxed select-all flex flex-col gap-1" id="note-content-2">
+<span class="font-semibold text-primary">Flight test checklist:</span>
+<span class="text-on-surface-variant">1. Calibrate inertial dampeners.</span>
+<span class="text-on-surface-variant">2. Verify quantum link.</span>
+</div>
+<div class="flex items-center gap-2 pt-1">
+<span class="px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-caption text-caption uppercase">Flight Ops</span>
+<span class="px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-caption text-caption uppercase">Telemetry</span>
+</div>
+</div>
+</div>
+</section>
+<!-- PRIMARY MODULE 3: EVERYDAY ROUTINES / MACROS MODULE (7 Cols) -->
+<section class="xl:col-span-7 flex flex-col gap-space-md">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2.5">
+<div class="w-7 h-7 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[17px]">hub</span>
+</div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface font-semibold tracking-tight">Everyday Routines &amp; System Macros</h2>
+</div>
+<button class="h-8 px-3 rounded-lg bg-surface-container-high hover:bg-surface-bright text-on-surface font-label-sm text-label-sm font-semibold flex items-center gap-1.5 transition-all shadow-sm" onclick="createNewRoutineModal()" type="button">
+<span class="material-symbols-outlined text-[16px] text-primary">add</span>
+<span>Create New Routine</span>
+</button>
+</div>
+<!-- Multi-action Routine Cards 2x2 Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-sm">
+<!-- ROUTINE 1: Coding Mode -->
+<div class="group relative p-space-md rounded-xl bg-surface-container-low/80 hover:bg-surface-container/80 backdrop-blur-2xl transition-all duration-300 shadow-md flex flex-col justify-between gap-space-md">
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center text-primary shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)]">
+<span class="material-symbols-outlined text-[22px]">terminal</span>
+</div>
+<span class="font-caption text-caption uppercase tracking-wider px-2 py-0.5 rounded bg-primary-container/20 text-primary font-semibold">Dev Preset</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold tracking-tight">Coding Mode</h3>
+<p class="font-caption text-caption text-on-surface-variant">Automated deep-work orchestration</p>
+</div>
+<!-- Action Sequence -->
+<div class="flex flex-col gap-1.5 pt-1">
+<div class="flex items-center gap-2 p-1.5 rounded-lg bg-surface-container-lowest/60 text-on-surface font-body-sm text-body-sm">
+<span class="w-5 h-5 rounded-full bg-surface-container-high flex items-center justify-center text-[10px] text-primary font-mono font-semibold">1</span>
+<span class="truncate">Launch VS Code &amp; Windows Terminal</span>
+</div>
+<div class="flex items-center gap-2 p-1.5 rounded-lg bg-surface-container-lowest/60 text-on-surface font-body-sm text-body-sm">
+<span class="w-5 h-5 rounded-full bg-surface-container-high flex items-center justify-center text-[10px] text-primary font-mono font-semibold">2</span>
+<span>Set Volume to 30%</span>
+</div>
+<div class="flex items-center gap-2 p-1.5 rounded-lg bg-surface-container-lowest/60 text-on-surface font-body-sm text-body-sm">
+<span class="w-5 h-5 rounded-full bg-surface-container-high flex items-center justify-center text-[10px] text-primary font-mono font-semibold">3</span>
+<span>Activate Do Not Disturb</span>
+</div>
+<div class="flex items-center gap-2 p-1.5 rounded-lg bg-surface-container-lowest/60 text-on-surface font-body-sm text-body-sm">
+<span class="w-5 h-5 rounded-full bg-surface-container-high flex items-center justify-center text-[10px] text-primary font-mono font-semibold">4</span>
+<span class="truncate">Launch Spotify Lo-Fi Playlist</span>
+</div>
+</div>
+</div>
+<!-- Run Button -->
+<button class="w-full h-10 mt-space-xs rounded-lg bg-primary-container text-on-primary-container font-label-md text-label-md font-semibold flex items-center justify-center gap-2 hover:bg-primary transition-all duration-200 shadow-[0_4px_16px_-2px_rgba(75,142,255,0.35)] active:scale-[0.98]" onclick="executeRoutine(this, 'Coding Mode')" type="button">
+<span class="material-symbols-outlined text-[18px]">play_arrow</span>
+<span>Run Routine Now</span>
+</button>
+</div>
+<!-- ROUTINE 2: Morning Briefing -->
+<div class="group relative p-space-md rounded-xl bg-surface-container-low/80 hover:bg-surface-container/80 backdrop-blur-2xl transition-all duration-300 shadow-md flex flex-col justify-between gap-space-md">
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center text-tertiary shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)]">
+<span class="material-symbols-outlined text-[22px]">wb_sunny</span>
+</div>
+<span class="font-caption text-caption uppercase tracking-wider px-2 py-0.5 rounded bg-tertiary-container/20 text-tertiary font-semibold">Daily Prime</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold tracking-tight">Morning Briefing</h3>
+<p class="font-caption text-caption text-on-surface-variant">Cognitive boot sequence &amp; agenda</p>
+</div>
+<!-- Action Sequence -->
+<div class="flex flex-col gap-1.5 pt-1">
+<div class="flex items-center gap-2 p-1.5 rounded-lg bg-surface-container-lowest/60 text-on-surface font-body-sm text-body-sm">
+<span class="w-5 h-5 rounded-full bg-surface-container-high flex items-center justify-center text-[10px] text-tertiary font-mono font-semibold">1</span>
+<span class="truncate">Speak weather &amp; calendar events</span>
+</div>
+<div class="flex items-center gap-2 p-1.5 rounded-lg bg-surface-container-lowest/60 text-on-surface font-body-sm text-body-sm">
+<span class="w-5 h-5 rounded-full bg-surface-container-high flex items-center justify-center text-[10px] text-tertiary font-mono font-semibold">2</span>
+<span>Turn display brightness to 80%</span>
+</div>
+<div class="flex items-center gap-2 p-1.5 rounded-lg bg-surface-container-lowest/60 text-on-surface font-body-sm text-body-sm">
+<span class="w-5 h-5 rounded-full bg-surface-container-high flex items-center justify-center text-[10px] text-tertiary font-mono font-semibold">3</span>
+<span>Open Work Slack &amp; Mail</span>
+</div>
+</div>
+</div>
+<!-- Run Button -->
+<button class="w-full h-10 mt-space-xs rounded-lg bg-surface-container-high text-on-surface hover:bg-surface-bright font-label-md text-label-md font-semibold flex items-center justify-center gap-2 transition-all duration-200 shadow-sm active:scale-[0.98]" onclick="executeRoutine(this, 'Morning Briefing')" type="button">
+<span class="material-symbols-outlined text-[18px] text-tertiary">play_arrow</span>
+<span>Run Routine Now</span>
+</button>
+</div>
+<!-- ROUTINE 3: Focus Mode -->
+<div class="group relative p-space-md rounded-xl bg-surface-container-low/80 hover:bg-surface-container/80 backdrop-blur-2xl transition-all duration-300 shadow-md flex flex-col justify-between gap-space-md">
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center text-primary-fixed shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)]">
+<span class="material-symbols-outlined text-[22px]">center_focus_strong</span>
+</div>
+<span class="font-caption text-caption uppercase tracking-wider px-2 py-0.5 rounded bg-primary-container/20 text-primary font-semibold">Isolation</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold tracking-tight">Focus Mode</h3>
+<p class="font-caption text-caption text-on-surface-variant">Cognitive clutter suppression</p>
+</div>
+<!-- Action Sequence -->
+<div class="flex flex-col gap-1.5 pt-1">
+<div class="flex items-center gap-2 p-1.5 rounded-lg bg-surface-container-lowest/60 text-on-surface font-body-sm text-body-sm">
+<span class="w-5 h-5 rounded-full bg-surface-container-high flex items-center justify-center text-[10px] text-primary-fixed font-mono font-semibold">1</span>
+<span>Close entertainment apps</span>
+</div>
+<div class="flex items-center gap-2 p-1.5 rounded-lg bg-surface-container-lowest/60 text-on-surface font-body-sm text-body-sm">
+<span class="w-5 h-5 rounded-full bg-surface-container-high flex items-center justify-center text-[10px] text-primary-fixed font-mono font-semibold">2</span>
+<span>Mute notifications for 60 min</span>
+</div>
+<div class="flex items-center gap-2 p-1.5 rounded-lg bg-surface-container-lowest/60 text-on-surface font-body-sm text-body-sm">
+<span class="w-5 h-5 rounded-full bg-surface-container-high flex items-center justify-center text-[10px] text-primary-fixed font-mono font-semibold">3</span>
+<span>Set LED backlight to deep cyan</span>
+</div>
+</div>
+</div>
+<!-- Run Button -->
+<button class="w-full h-10 mt-space-xs rounded-lg bg-surface-container-high text-on-surface hover:bg-surface-bright font-label-md text-label-md font-semibold flex items-center justify-center gap-2 transition-all duration-200 shadow-sm active:scale-[0.98]" onclick="executeRoutine(this, 'Focus Mode')" type="button">
+<span class="material-symbols-outlined text-[18px] text-primary">play_arrow</span>
+<span>Run Routine Now</span>
+</button>
+</div>
+<!-- ROUTINE 4: Goodnight / Standby -->
+<div class="group relative p-space-md rounded-xl bg-surface-container-low/80 hover:bg-surface-container/80 backdrop-blur-2xl transition-all duration-300 shadow-md flex flex-col justify-between gap-space-md">
+<div class="flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center text-secondary shadow-[inset_0_1px_0_0_rgba(255,255,255,0.18)]">
+<span class="material-symbols-outlined text-[22px]">bedtime</span>
+</div>
+<span class="font-caption text-caption uppercase tracking-wider px-2 py-0.5 rounded bg-secondary-container/30 text-secondary font-semibold">Standby</span>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold tracking-tight">Goodnight / Standby</h3>
+<p class="font-caption text-caption text-on-surface-variant">Low power environmental lockdown</p>
+</div>
+<!-- Action Sequence -->
+<div class="flex flex-col gap-1.5 pt-1">
+<div class="flex items-center gap-2 p-1.5 rounded-lg bg-surface-container-lowest/60 text-on-surface font-body-sm text-body-sm">
+<span class="w-5 h-5 rounded-full bg-surface-container-high flex items-center justify-center text-[10px] text-secondary font-mono font-semibold">1</span>
+<span>Lock PC</span>
+</div>
+<div class="flex items-center gap-2 p-1.5 rounded-lg bg-surface-container-lowest/60 text-on-surface font-body-sm text-body-sm">
+<span class="w-5 h-5 rounded-full bg-surface-container-high flex items-center justify-center text-[10px] text-secondary font-mono font-semibold">2</span>
+<span>Dim screen to 0%</span>
+</div>
+<div class="flex items-center gap-2 p-1.5 rounded-lg bg-surface-container-lowest/60 text-on-surface font-body-sm text-body-sm">
+<span class="w-5 h-5 rounded-full bg-surface-container-high flex items-center justify-center text-[10px] text-secondary font-mono font-semibold">3</span>
+<span class="truncate">Put Jarvis in Sleep Listen Mode</span>
+</div>
+</div>
+</div>
+<!-- Run Button -->
+<button class="w-full h-10 mt-space-xs rounded-lg bg-surface-container-high text-on-surface hover:bg-surface-bright font-label-md text-label-md font-semibold flex items-center justify-center gap-2 transition-all duration-200 shadow-sm active:scale-[0.98]" onclick="executeRoutine(this, 'Goodnight / Standby')" type="button">
+<span class="material-symbols-outlined text-[18px] text-secondary">play_arrow</span>
+<span>Run Routine Now</span>
+</button>
+</div>
+</div>
+</section>
+</div>
+<!-- Notification Toast Element for Micro-Interactions -->
+<div class="fixed bottom-6 right-6 z-50 transform translate-y-16 opacity-0 transition-all duration-300 pointer-events-none flex items-center gap-space-sm px-space-md py-3 rounded-xl bg-surface-container-high text-on-surface shadow-2xl" id="toastNotification">
+<span class="material-symbols-outlined text-[20px] text-primary" id="toastIcon">info</span>
+<span class="font-body-sm text-body-sm font-medium" id="toastMessage">Routine dispatched</span>
+</div>
+</div>
+<script>
+    // Quick time chips handler
+    function setQuickTime(timeStr) {
+      const timeInput = document.getElementById('reminderTime');
+      timeInput.value = timeStr;
+      timeInput.focus();
+    }
+
+    // Dynamic Reminder creation
+    document.getElementById('setReminderBtn').addEventListener('click', function() {
+      const textInput = document.getElementById('reminderText');
+      const timeInput = document.getElementById('reminderTime');
+      const textVal = textInput.value.trim();
+      const timeVal = timeInput.value.trim() || 'Today in 30 mins';
+
+      if (!textVal) {
+        showToast('Please enter a reminder title', 'warning', 'text-error');
+        textInput.focus();
+        return;
+      }
+
+      const container = document.getElementById('remindersContainer');
+      const newId = 'reminder-' + Date.now();
+      
+      const newCard = document.createElement('div');
+      newCard.id = newId;
+      newCard.className = 'group p-space-md rounded-xl bg-surface-container-low/70 hover:bg-surface-container/70 backdrop-blur-xl transition-all duration-200 shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-space-md animate-fadeIn';
+      newCard.innerHTML = `
+        <div class="flex items-start gap-space-md min-w-0">
+          <div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary mt-0.5 shrink-0">
+            <span class="material-symbols-outlined text-[20px]">notifications_active</span>
+          </div>
+          <div class="flex flex-col min-w-0">
+            <div class="flex items-center gap-space-sm flex-wrap">
+              <h3 class="font-headline-sm text-headline-sm text-on-surface font-semibold truncate">${escapeHtml(textVal)}</h3>
+              <span class="px-2.5 py-0.5 rounded-full bg-primary-container/20 text-primary font-label-sm text-label-sm">
+                Scheduled
+              </span>
+            </div>
+            <div class="flex items-center gap-3 text-on-surface-variant font-body-sm text-body-sm mt-0.5">
+              <span class="flex items-center gap-1"><span class="material-symbols-outlined text-[15px]">schedule</span> ${escapeHtml(timeVal)}</span>
+              <span>&bull;</span>
+              <span class="flex items-center gap-1 text-tertiary"><span class="material-symbols-outlined text-[15px]">neurology</span> JARVIS Proactive Monitor</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 self-end md:self-center shrink-0">
+          <button type="button" onclick="snoozeReminder('${newId}')" class="px-3 py-1.5 rounded-lg bg-surface-container-high text-on-surface-variant hover:text-on-surface hover:bg-surface-bright font-label-sm text-label-sm transition-all flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[16px]">snooze</span>
+            <span>Snooze 10m</span>
+          </button>
+          <button type="button" onclick="dismissReminder('${newId}')" class="px-3 py-1.5 rounded-lg bg-surface-container-highest text-on-surface-variant hover:text-error hover:bg-error-container/40 font-label-sm text-label-sm transition-all flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[16px]">check_circle</span>
+            <span>Dismiss / Delete</span>
+          </button>
+        </div>
+      `;
+
+      container.insertBefore(newCard, container.firstChild);
+      textInput.value = '';
+      timeInput.value = '';
+      showToast('Reminder indexed into neural buffer', 'check_circle', 'text-tertiary');
+    });
+
+    function dismissReminder(cardId) {
+      const card = document.getElementById(cardId);
+      if (card) {
+        card.style.opacity = '0';
+        card.style.transform = 'scale(0.96)';
+        setTimeout(() => card.remove(), 200);
+        showToast('Reminder cleared from timeline', 'delete', 'text-on-surface-variant');
+      }
+    }
+
+    function snoozeReminder(cardId) {
+      showToast('Snoozed for 10 minutes', 'snooze', 'text-primary');
+    }
+
+    function runBackupAction(cardId) {
+      showToast('Initializing NAS Storage Backup daemon...', 'sync', 'text-tertiary');
+      setTimeout(() => {
+        dismissReminder(cardId);
+        showToast('Backup completed (34.2 GB synchronized)', 'cloud_done', 'text-tertiary');
+      }, 1400);
+    }
+
+    // Markdown insertion tool
+    function insertMarkdown(syntax) {
+      const textarea = document.getElementById('noteScratchpad');
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const text = textarea.value;
+      textarea.value = text.substring(0, start) + syntax + text.substring(end);
+      textarea.focus();
+      textarea.setSelectionRange(start + syntax.length, start + syntax.length);
+      updateCharCount();
+    }
+
+    const scratchpad = document.getElementById('noteScratchpad');
+    scratchpad.addEventListener('input', updateCharCount);
+
+    function updateCharCount() {
+      const len = scratchpad.value.length;
+      document.getElementById('noteCharCount').innerText = `${len} characters`;
+    }
+
+    function saveScratchpadNote() {
+      const text = scratchpad.value.trim();
+      if (!text) {
+        showToast('Scratchpad note is empty', 'warning', 'text-error');
+        scratchpad.focus();
+        return;
+      }
+
+      const container = document.getElementById('notesContainer');
+      const newCardId = 'note-' + Date.now();
+      const contentId = 'note-content-' + Date.now();
+
+      const newNote = document.createElement('div');
+      newNote.id = newCardId;
+      newNote.className = 'p-space-md rounded-xl bg-surface-container-low/70 backdrop-blur-xl shadow-md flex flex-col gap-space-sm transition-all hover:bg-surface-container/70';
+      newNote.innerHTML = `
+        <div class="flex items-start justify-between gap-space-sm">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-secondary"></span>
+            <span class="font-label-sm text-label-sm text-on-surface-variant">Saved just now</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <button type="button" onclick="copyNoteText('${contentId}', this)" class="p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" title="Copy Note">
+              <span class="material-symbols-outlined text-[17px]">content_copy</span>
+            </button>
+            <button type="button" onclick="deleteNote('${newCardId}')" class="p-1.5 rounded-lg text-on-surface-variant hover:text-error hover:bg-error-container/30 transition-colors" title="Delete Note">
+              <span class="material-symbols-outlined text-[17px]">delete</span>
+            </button>
+          </div>
+        </div>
+        <div id="${contentId}" class="font-body-md text-body-md text-on-surface font-mono bg-surface-container-lowest/60 p-3 rounded-lg leading-relaxed select-all whitespace-pre-wrap">${escapeHtml(text)}</div>
+        <div class="flex items-center gap-2 pt-1">
+          <span class="px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-caption text-caption uppercase">User Note</span>
+          <span class="px-2 py-0.5 rounded bg-surface-container-high text-on-surface-variant font-caption text-caption uppercase">Markdown</span>
+        </div>
+      `;
+
+      container.insertBefore(newNote, container.firstChild);
+      scratchpad.value = '';
+      updateCharCount();
+      showToast('Note synced to memory cache', 'done_all', 'text-tertiary');
+    }
+
+    function copyNoteText(elementId, btn) {
+      const el = document.getElementById(elementId);
+      if (el) {
+        navigator.clipboard.writeText(el.innerText).then(() => {
+          showToast('Copied to Windows clipboard', 'content_paste_go', 'text-primary');
+          const originalIcon = btn.innerHTML;
+          btn.innerHTML = '<span class="material-symbols-outlined text-[17px] text-tertiary">check</span>';
+          setTimeout(() => btn.innerHTML = originalIcon, 1500);
+        });
+      }
+    }
+
+    function deleteNote(cardId) {
+      const card = document.getElementById(cardId);
+      if (card) {
+        card.style.opacity = '0';
+        card.style.transform = 'scale(0.96)';
+        setTimeout(() => card.remove(), 200);
+        showToast('Note removed from local store', 'delete', 'text-on-surface-variant');
+      }
+    }
+
+    // Macro execution simulation
+    function executeRoutine(button, name) {
+      const originalText = button.innerHTML;
+      button.disabled = true;
+      button.innerHTML = `
+        <span class="material-symbols-outlined text-[18px] animate-spin">refresh</span>
+        <span>Executing Actions...</span>
+      `;
+
+      showToast(`Initiating macro: [${name}]`, 'bolt', 'text-primary');
+
+      setTimeout(() => {
+        button.disabled = false;
+        button.innerHTML = `
+          <span class="material-symbols-outlined text-[18px] text-tertiary">task_alt</span>
+          <span>Routine Active</span>
+        `;
+        showToast(`[${name}] sequence completed successfully`, 'check_circle', 'text-tertiary');
+
+        setTimeout(() => {
+          button.innerHTML = originalText;
+        }, 3000);
+      }, 1600);
+    }
+
+    function createNewRoutineModal() {
+      showToast('Opening Neural Macro Composer...', 'tune', 'text-primary');
+    }
+
+    // Toast notification utility
+    function showToast(message, icon = 'info', iconColorClass = 'text-primary') {
+      const toast = document.getElementById('toastNotification');
+      const toastMsg = document.getElementById('toastMessage');
+      const toastIcon = document.getElementById('toastIcon');
+      
+      toastMsg.innerText = message;
+      toastIcon.innerText = icon;
+      toastIcon.className = `material-symbols-outlined text-[20px] ${iconColorClass}`;
+
+      toast.classList.remove('translate-y-16', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      if (window.toastTimeout) clearTimeout(window.toastTimeout);
+      window.toastTimeout = setTimeout(() => {
+        toast.classList.add('translate-y-16', 'opacity-0');
+        toast.classList.remove('translate-y-0', 'opacity-100');
+      }, 2800);
+    }
+
+    function escapeHtml(string) {
+      const entityMap = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+        '/': '&#x2F;'
+      };
+      return String(string).replace(/[&<>"'/]/g, function (s) {
+        return entityMap[s];
+      });
+    }
+  </script>
+</div></main></div></body></html>

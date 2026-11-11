@@ -11,7 +11,14 @@ import json
 from openai import OpenAI
 
 from config import DATA_DIR, GOOGLE_API_KEY, GOOGLE_BASE_URL, JARVIS_MODEL
-from tools import TOOL_DEFINITIONS, TOOL_FUNCTIONS
+from tools import (
+    TOOL_DEFINITIONS,
+    TOOL_FUNCTIONS,
+    append_chat_log,
+    get_memories_prompt_block,
+    get_routines_prompt_block,
+    load_chat_log,
+)
 
 client = OpenAI(api_key=GOOGLE_API_KEY, base_url=GOOGLE_BASE_URL)
 
@@ -19,11 +26,57 @@ SYSTEM_PROMPT = (
     "You are Jarvis, a concise personal assistant with access to tools that "
     "control the user's Windows PC. Use tools when the user's request maps "
     "to one. If nothing fits, just answer directly. Keep replies short — "
-    "they may be spoken aloud."
+    "they may be spoken aloud.\n\n"
+    "LONG-TERM MEMORY & LEARNING RULES:\n"
+    "- Whenever the user shares a personal fact (name, work, projects), a preference "
+    "(preferred browser, apps, streaming platforms, habits), or corrects you "
+    "(e.g. 'Bigg Boss is on JioHotstar', 'I use Opera'), ALWAYS call `remember_fact` "
+    "to permanently learn it alongside fulfilling their request.\n"
+    "- Always respect the LEARNED LONG-TERM MEMORIES listed below when choosing tools "
+    "or arguments (for example, using the user's preferred browser or streaming site).\n"
+    "- If the user asks to run a saved routine (e.g. 'start coding mode', 'run focus mode', "
+    "'morning briefing'), execute all the tools required by that routine's description.\n"
+    "- If the user asks about older conversations not in the immediate context, "
+    "call `search_chat_history`."
 )
 
 HISTORY_FILE = DATA_DIR / "history.json"
 MAX_HISTORY_TURNS = 20  # Keep last 20 messages to prevent unbounded token growth
+
+# Tools whose return string is already a complete, concise user-facing reply.
+# When a turn ONLY invokes tools from this set, we return the tool output(s)
+# directly and skip the 2nd LLM network round-trip (cutting latency in half).
+DIRECT_RETURN_TOOLS = {
+    "open_app",
+    "close_app",
+    "set_volume",
+    "get_volume",
+    "mute_audio",
+    "unmute_audio",
+    "control_media",
+    "get_battery_status",
+    "lock_pc",
+    "take_screenshot",
+    "set_screen_brightness",
+    "get_screen_brightness",
+    "open_folder",
+    "open_url",
+    "take_note",
+    "delete_note",
+    "set_reminder",
+    "delete_reminder",
+    "set_timer",
+    "cancel_timer",
+    "minimize_all_windows",
+    "save_routine",
+    "delete_routine",
+    "get_current_time",
+    "remember_fact",
+    "forget_memory",
+    "clear_memory",
+    "set_clipboard_text",
+    "analyze_screen",
+}
 
 # Convert our tool schemas (name, description, input_schema) into the
 # OpenAI-style "function" tool format Gemini expects.
@@ -42,8 +95,29 @@ OPENAI_TOOLS = [
 
 class JarvisAgent:
     def __init__(self):
+        # Ensure permanent chat archive is initialized (bootstraps from history.json if needed)
+        load_chat_log()
+        self.last_tools_used: list[str] = []
         # Load persistent conversation history so context survives restarts
         self.history = self._load_history()
+
+    @staticmethod
+    def _build_system_prompt() -> str:
+        prompt = SYSTEM_PROMPT
+        memories_block = get_memories_prompt_block()
+        if memories_block:
+            prompt += f"\n\nLEARNED LONG-TERM MEMORIES ABOUT THE USER:\n{memories_block}"
+        routines_block = get_routines_prompt_block()
+        if routines_block:
+            prompt += f"\n\nSAVED EVERYDAY ROUTINES:\n{routines_block}"
+        return prompt
+
+    def _refresh_system_prompt(self):
+        prompt = self._build_system_prompt()
+        if self.history and self.history[0].get("role") == "system":
+            self.history[0]["content"] = prompt
+        else:
+            self.history.insert(0, {"role": "system", "content": prompt})
 
     @staticmethod
     def _clean_messages(messages):
@@ -70,6 +144,7 @@ class JarvisAgent:
         return []  # nothing salvageable
 
     def _load_history(self):
+        sys_msg = [{"role": "system", "content": self._build_system_prompt()}]
         if HISTORY_FILE.exists():
             try:
                 data = json.loads(HISTORY_FILE.read_text(encoding="utf-8"))
@@ -79,15 +154,15 @@ class JarvisAgent:
                     recent = self._trim_to_user_start(recent)
                     recent = self._clean_messages(recent)
                     if recent:
-                        return [{"role": "system", "content": SYSTEM_PROMPT}] + recent
+                        return sys_msg + recent
             except Exception:
                 pass
-        return [{"role": "system", "content": SYSTEM_PROMPT}]
+        return sys_msg
 
     def _save_history(self):
         try:
             # Keep system prompt + last N turns, cleaned for reload safety
-            system_msg = [{"role": "system", "content": SYSTEM_PROMPT}]
+            system_msg = [{"role": "system", "content": self._build_system_prompt()}]
             non_system = [m for m in self.history if m.get("role") != "system"][-MAX_HISTORY_TURNS:]
             non_system = self._clean_messages(non_system)
             to_save = system_msg + non_system
@@ -96,12 +171,19 @@ class JarvisAgent:
             pass
 
     def clear_history(self) -> str:
-        self.history = [{"role": "system", "content": SYSTEM_PROMPT}]
-        self._save_history()
+        self.history = [{"role": "system", "content": self._build_system_prompt()}]
+        if HISTORY_FILE.exists():
+            try:
+                HISTORY_FILE.unlink()
+            except Exception:
+                pass
         return "Conversation memory cleared."
 
     def run(self, user_text: str) -> str:
+        self._refresh_system_prompt()
+        self.last_tools_used = []
         self.history.append({"role": "user", "content": user_text})
+        cleared_during_turn = False
 
         while True:
             try:
@@ -127,29 +209,64 @@ class JarvisAgent:
 
             if not message.tool_calls:
                 reply = (message.content or "").strip()
-                self._save_history()
+                if cleared_during_turn:
+                    self.history = [{"role": "system", "content": self._build_system_prompt()}]
+                else:
+                    self._save_history()
+                append_chat_log(user_text, reply, self.last_tools_used)
                 return reply
 
             # Execute every tool call Gemini asked for, then loop again so
             # it can see the results and decide what's next.
+            turn_results: list[tuple[str, str]] = []
+            all_direct = True
             for tc in message.tool_calls:
-                fn = TOOL_FUNCTIONS.get(tc.function.name)
+                tool_name = tc.function.name
+                self.last_tools_used.append(tool_name)
+                if tool_name == "clear_memory":
+                    cleared_during_turn = True
+                if tool_name not in DIRECT_RETURN_TOOLS:
+                    all_direct = False
+                fn = TOOL_FUNCTIONS.get(tool_name)
                 try:
                     args = json.loads(tc.function.arguments or "{}")
                 except json.JSONDecodeError:
                     args = {}
 
                 if fn is None:
-                    result = f"Unknown tool: {tc.function.name}"
+                    result = f"Unknown tool: {tool_name}"
+                    all_direct = False
                 else:
                     try:
                         result = fn(**args)
                     except Exception as e:
-                        result = f"Tool {tc.function.name} failed: {e}"
+                        result = f"Tool {tool_name} failed: {e}"
+                        all_direct = False
 
+                # Refresh system prompt immediately if a memory or routine tool updated disk state
+                if tool_name in ("remember_fact", "forget_memory", "save_routine", "delete_routine"):
+                    self._refresh_system_prompt()
+
+                result_str = str(result)
+                turn_results.append((tool_name, result_str))
                 self.history.append({
                     "role": "tool",
                     "tool_call_id": tc.id,
-                    "name": tc.function.name,
-                    "content": str(result),
+                    "name": tool_name,
+                    "content": result_str,
                 })
+
+            # Fast-path: if all executed tools produce final user-ready replies,
+            # return immediately without making a second round-trip to Gemini.
+            if all_direct and turn_results:
+                non_memory = [r for name, r in turn_results if name != "remember_fact"]
+                reply_parts = non_memory if non_memory else [r for _, r in turn_results]
+                reply = " ".join(p.strip() for p in reply_parts if p and p.strip()).strip()
+                if reply:
+                    self.history.append({"role": "assistant", "content": reply})
+                    if cleared_during_turn:
+                        self.history = [{"role": "system", "content": self._build_system_prompt()}]
+                    else:
+                        self._save_history()
+                    append_chat_log(user_text, reply, self.last_tools_used)
+                    return reply

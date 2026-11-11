@@ -1,853 +1,840 @@
 """
-Jarvis HUD Overlay — Iron Man-style floating desktop widget.
+Jarvis Desktop Application — Liquid Spatial UI (Google Stitch Edition).
 
-A transparent, always-on-top floating HUD that shows system vitals
-(time, battery, volume, brightness) and expands into a full chat
-interface.  Communicates with the JarvisAgent directly (same process).
+Provides two seamless desktop modes powered by PyQt6-WebEngine and the local
+Stitch Bridge server:
+  1. Main Jarvis Hub (`MainHubWindow`) — 5-view spatial workspace:
+       - Chat & Voice Workspace
+       - Long-Term Memory & Learning
+       - System & Hardware Controls
+       - Productivity Hub (Reminders, Timers, Notes, Routines)
+       - Settings & iOS/Siri Shortcut Bridge
+  2. Compact Floating Desktop Widget (`CompactWidgetWindow`) — frameless,
+     translucent, always-on-top mini HUD with interactive Acoustic Orb,
+     live telemetry sliders, and 2x2 quick action tiles.
 
 Run:
     python gui.py
 """
 
-import sys
+import collections
 import ctypes
 from ctypes import wintypes
-from datetime import datetime
+import os
+from pathlib import Path
+import queue
+import sys
+import threading
+import time
 
-import psutil
-import screen_brightness_control as sbc
-from pycaw.pycaw import AudioUtilities
+# When launched windowless via pythonw.exe, sys.stdout/sys.stderr are None.
+# Redirect them BEFORE importing any third-party packages (tqdm/onnx/whisper check sys.stdout).
+if sys.stdout is None or sys.stderr is None:
+    try:
+        _early_data_dir = Path(__file__).resolve().parent / "data"
+        _early_data_dir.mkdir(exist_ok=True)
+        _log_file = open(_early_data_dir / "jarvis.log", "a", encoding="utf-8", buffering=1)
+        if sys.stdout is None:
+            sys.stdout = _log_file
+        if sys.stderr is None:
+            sys.stderr = _log_file
+    except Exception:
+        pass
 
-from PyQt6.QtCore import Qt, QTimer, QThread, pyqtSignal, QRectF
-from PyQt6.QtGui import (
-    QColor, QPainter, QPen, QFont, QIcon, QPixmap,
+# Enable hardware GPU acceleration for smooth WebEngine rendering on Windows 11
+os.environ.setdefault(
+    "QTWEBENGINE_CHROMIUM_FLAGS",
+    "--disable-features=CalculateNativeWinOcclusion --enable-gpu-rasterization --enable-zero-copy",
 )
+
+import numpy as np
+
+try:
+    import sounddevice as sd
+    from faster_whisper import WhisperModel
+    import openwakeword
+    from openwakeword.model import Model as OwwModel
+    VOICE_DEPS_AVAILABLE = True
+except Exception:
+    VOICE_DEPS_AVAILABLE = False
+
+try:
+    import pyttsx3
+except Exception:
+    pyttsx3 = None
+
+try:
+    import winsound
+except Exception:
+    winsound = None
+
+from PyQt6.QtCore import Qt, QThread, pyqtSignal, QUrl, QObject, pyqtSlot
+from PyQt6.QtGui import QColor, QPainter, QIcon, QPixmap
 from PyQt6.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QLineEdit, QPushButton, QFrame, QScrollArea, QSystemTrayIcon,
+    QApplication,
+    QMainWindow,
+    QSystemTrayIcon,
     QMenu,
 )
+from PyQt6.QtWebEngineWidgets import QWebEngineView
 
 from agent import JarvisAgent
-from tools import take_screenshot, control_media, mute_audio, unmute_audio, lock_pc
+from config import (
+    BASE_DIR,
+    DATA_DIR,
+    JARVIS_SERVER_PORT,
+    JARVIS_TTS_RATE,
+    JARVIS_TTS_VOICE_INDEX,
+    JARVIS_WAKE_THRESHOLD,
+    JARVIS_WAKE_WORD,
+    JARVIS_WHISPER_MODEL,
+)
 import scheduler
+from stitch_bridge import StitchBridgeController, start_bridge_http_server
 
 
-# ══════════════════════════════════════════════════════════════════════
-#  CONSTANTS
-# ══════════════════════════════════════════════════════════════════════
-
-# Palette
-COL_BG         = QColor(10, 15, 25, 200)
-COL_ACCENT     = QColor(0, 212, 255)
-COL_ACCENT_DIM = QColor(0, 212, 255, 80)
-COL_TEXT       = QColor(220, 235, 245)
-COL_TEXT_DIM   = QColor(138, 188, 212)
-COL_SEP        = "rgba(0, 212, 255, 40)"
-
-# Chat bubbles (CSS)
-COL_USER_BG    = "#192850DD"
-COL_USER_BD    = "#1a4a8a"
-COL_BOT_BG     = "#0A323CDD"
-COL_BOT_BD     = "#0d6070"
-COL_SYS_BG     = "#1a1a2eCC"
-COL_SYS_BD     = "#333355"
-
-# Layout
-HUD_W, HUD_H   = 170, 360
-CHAT_W, CHAT_H  = 420, 620
-RADIUS           = 18
-GLOW             = 4
-FONT             = "Segoe UI"
+STARTUP_REG_PATH = r"Software\Microsoft\Windows\CurrentVersion\Run"
+STARTUP_REG_NAME = "JarvisAssistant"
 
 
-# ══════════════════════════════════════════════════════════════════════
-#  SYSTEM STATS HELPERS
-# ══════════════════════════════════════════════════════════════════════
+def _get_startup_command() -> str:
+    py_exe = os.path.abspath(sys.executable)
+    pyw_exe = os.path.join(os.path.dirname(py_exe), "pythonw.exe")
+    runner = pyw_exe if os.path.exists(pyw_exe) else py_exe
+    script = os.path.abspath(__file__)
+    return f'"{runner}" "{script}"'
 
-def _read_battery():
-    """Returns (percent | None, charging: bool)."""
+
+def _is_startup_enabled() -> bool:
     try:
-        b = psutil.sensors_battery()
-        return (b.percent, b.power_plugged) if b else (None, False)
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, STARTUP_REG_PATH, 0, winreg.KEY_READ) as key:
+            val, _ = winreg.QueryValueEx(key, STARTUP_REG_NAME)
+            return bool(val)
     except Exception:
-        return (None, False)
+        return False
 
 
-def _read_volume():
-    """Returns (percent | None, muted: bool)."""
+def _set_startup_enabled(enabled: bool) -> bool:
     try:
-        vol = AudioUtilities.GetSpeakers().EndpointVolume
-        return (int(round(vol.GetMasterVolumeLevelScalar() * 100)),
-                bool(vol.GetMute()))
-    except Exception:
-        return (None, False)
-
-
-def _read_brightness():
-    """Returns percent | None."""
-    try:
-        b = sbc.get_brightness()
-        return b[0] if isinstance(b, list) else b
-    except Exception:
-        return None
-
-
-# ══════════════════════════════════════════════════════════════════════
-#  BASE PANEL — translucent rounded rectangle with cyan glow border
-# ══════════════════════════════════════════════════════════════════════
-
-class GlowPanel(QWidget):
-    """Frameless, translucent, always-on-top widget with a painted glow."""
-
-    def __init__(self, w, h, radius=RADIUS, parent=None):
-        super().__init__(parent)
-        self.setFixedSize(w, h)
-        self._radius = radius
-        self._drag_start = None
-        self._drag_offset = None
-        self.setWindowFlags(
-            Qt.WindowType.FramelessWindowHint
-            | Qt.WindowType.WindowStaysOnTopHint
-            | Qt.WindowType.Tool          # stays off the taskbar
-        )
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-
-    # ── painting ──────────────────────────────────────────────────────
-
-    def paintEvent(self, event):
-        p = QPainter(self)
-        p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        inset = GLOW + 2
-        body = self.rect().adjusted(inset, inset, -inset, -inset)
-
-        # outer glow rings
-        for i in range(GLOW):
-            pen = QPen(QColor(0, 212, 255, 35 - i * 8))
-            pen.setWidthF(2.5 - i * 0.5)
-            p.setPen(pen)
-            p.setBrush(Qt.BrushStyle.NoBrush)
-            r = body.adjusted(-i - 1, -i - 1, i + 1, i + 1)
-            p.drawRoundedRect(QRectF(r), self._radius + i, self._radius + i)
-
-        # dark background
-        p.setPen(Qt.PenStyle.NoPen)
-        p.setBrush(COL_BG)
-        p.drawRoundedRect(QRectF(body), self._radius, self._radius)
-
-        # crisp border
-        pen = QPen(COL_ACCENT_DIM)
-        pen.setWidthF(1.5)
-        p.setPen(pen)
-        p.setBrush(Qt.BrushStyle.NoBrush)
-        p.drawRoundedRect(QRectF(body), self._radius, self._radius)
-
-    # ── dragging ──────────────────────────────────────────────────────
-
-    def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
-            self._drag_start = event.globalPosition().toPoint()
-            self._drag_offset = self._drag_start - self.pos()
-
-    def mouseMoveEvent(self, event):
-        if self._drag_offset and event.buttons() & Qt.MouseButton.LeftButton:
-            self.move(event.globalPosition().toPoint() - self._drag_offset)
-
-    def mouseReleaseEvent(self, event):
-        self._drag_start = None
-        self._drag_offset = None
-
-    # ── prevent accidental destruction ────────────────────────────────
-
-    def closeEvent(self, event):
-        event.ignore()
-        self.hide()
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, STARTUP_REG_PATH, 0, winreg.KEY_SET_VALUE) as key:
+            if enabled:
+                winreg.SetValueEx(key, STARTUP_REG_NAME, 0, winreg.REG_SZ, _get_startup_command())
+            else:
+                try:
+                    winreg.DeleteValue(key, STARTUP_REG_NAME)
+                except FileNotFoundError:
+                    pass
+        return True
+    except Exception as e:
+        print(f"[Startup Registry Error] {e}")
+        return False
 
 
 # ══════════════════════════════════════════════════════════════════════
-#  STAT PROGRESS BAR  (thin 3 px horizontal bar)
+#  AUDIO & BACKGROUND WORKERS (TTS, VOICE, GLOBAL HOTKEY)
 # ══════════════════════════════════════════════════════════════════════
 
-class StatBar(QWidget):
+SAMPLE_RATE = 16000
+CHUNK_SAMPLES = 1280
+SILENCE_TIMEOUT_SECONDS = 0.7
+MAX_RECORDING_SECONDS = 12.0
+MIN_RECORDING_SECONDS = 0.35
+PRE_ROLL_CHUNKS = 5
+
+WHISPER_INITIAL_PROMPT = (
+    "Hey Jarvis. Open Notepad, Calculator, Spotify, Chrome, Edge, Opera, VS Code, "
+    "close app, what time is it, set a reminder, set a timer, take a note, "
+    "run my coding mode routine, check system status, Bigg Boss, JioHotstar."
+)
+
+
+def _play_chime(kind: str = "activate"):
+    if winsound is None:
+        return
+
+    def _beep():
+        try:
+            if kind == "activate":
+                winsound.Beep(900, 70)
+                winsound.Beep(1300, 80)
+            elif kind == "done":
+                winsound.Beep(750, 65)
+        except Exception:
+            pass
+
+    threading.Thread(target=_beep, daemon=True).start()
+
+
+class TtsWorker(QThread):
+    """Dedicated TTS thread so SAPI5 speech never blocks the Qt GUI or mic loop."""
+    speaking_changed = pyqtSignal(bool)
+
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedHeight(3)
-        self._value = 0
+        self._queue = queue.Queue()
+        self._running = True
+        self.enabled = True
 
-    def setValue(self, v):
-        self._value = max(0, min(100, int(v)))
-        self.update()
+    def speak(self, text: str):
+        if self.enabled and text and text.strip():
+            self._queue.put(text.strip())
 
-    def paintEvent(self, event):
-        p = QPainter(self)
-        p.setRenderHint(QPainter.RenderHint.Antialiasing)
-        p.setPen(Qt.PenStyle.NoPen)
-        # track
-        p.setBrush(QColor(255, 255, 255, 15))
-        p.drawRoundedRect(QRectF(0, 0, self.width(), self.height()), 1.5, 1.5)
-        # fill
-        fw = int(self.width() * self._value / 100)
-        if fw > 0:
-            p.setBrush(COL_ACCENT)
-            p.drawRoundedRect(QRectF(0, 0, fw, self.height()), 1.5, 1.5)
+    def stop(self):
+        self._running = False
+        self._queue.put(None)
 
-
-# ══════════════════════════════════════════════════════════════════════
-#  CHAT MESSAGE BUBBLE
-# ══════════════════════════════════════════════════════════════════════
-
-class MessageBubble(QWidget):
-    """Single chat bubble — user (right-aligned, blue) or Jarvis (left, teal)."""
-
-    def __init__(self, text, is_user=True, is_system=False, parent=None):
-        super().__init__(parent)
-        self.setStyleSheet("background: transparent;")
-
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(4, 2, 4, 2)
-        layout.setSpacing(6)
-
-        self._label = QLabel(text)
-        self._label.setWordWrap(True)
-        self._label.setMaximumWidth(300)
-        self._label.setTextInteractionFlags(
-            Qt.TextInteractionFlag.TextSelectableByMouse
-        )
-
-        if is_system:
-            bg, bd = COL_SYS_BG, COL_SYS_BD
-            self._label.setMaximumWidth(350)
-            self._label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            layout.addStretch()
-            layout.addWidget(self._label)
-            layout.addStretch()
-        elif is_user:
-            bg, bd = COL_USER_BG, COL_USER_BD
-            layout.addStretch()
-            layout.addWidget(self._label)
-        else:
-            bg, bd = COL_BOT_BG, COL_BOT_BD
-            layout.addWidget(self._label)
-            layout.addStretch()
-
-        self._label.setStyleSheet(f"""
-            QLabel {{
-                color: #DCE9F5;
-                background: {bg};
-                border: 1px solid {bd};
-                border-radius: 12px;
-                padding: 8px 14px;
-                font-family: '{FONT}';
-                font-size: 13px;
-            }}
-        """)
-
-    def set_text(self, text):
-        self._label.setText(text)
-
-
-# ══════════════════════════════════════════════════════════════════════
-#  BACKGROUND WORKERS
-# ══════════════════════════════════════════════════════════════════════
-
-class AgentWorker(QThread):
-    """Runs JarvisAgent.run() off the GUI thread so the UI never freezes."""
-    result_ready = pyqtSignal(str)
-
-    def __init__(self, agent, text, parent=None):
-        super().__init__(parent)
-        self._agent = agent
-        self._text = text
+    @staticmethod
+    def _create_engine():
+        engine = pyttsx3.init()
+        engine.setProperty("rate", JARVIS_TTS_RATE)
+        voices = engine.getProperty("voices")
+        if voices and 0 <= JARVIS_TTS_VOICE_INDEX < len(voices):
+            engine.setProperty("voice", voices[JARVIS_TTS_VOICE_INDEX].id)
+        return engine
 
     def run(self):
         try:
-            reply = self._agent.run(self._text)
+            ctypes.windll.ole32.CoInitialize(None)
+        except Exception:
+            pass
+
+        engine = None
+        if pyttsx3 is not None:
+            try:
+                engine = self._create_engine()
+            except Exception:
+                engine = None
+
+        while self._running:
+            try:
+                item = self._queue.get(timeout=0.3)
+            except queue.Empty:
+                continue
+            if item is None or not self._running:
+                break
+            if not self.enabled or pyttsx3 is None:
+                continue
+
+            self.speaking_changed.emit(True)
+            try:
+                if engine is None:
+                    engine = self._create_engine()
+                engine.say(item)
+                engine.runAndWait()
+            except Exception as e:
+                print(f"[GUI TTS Error] {e}")
+                engine = None
+            finally:
+                self.speaking_changed.emit(False)
+
+
+class GuiVoiceThread(QThread):
+    """
+    Background wake-word ('Hey Jarvis') + push-to-talk + faster-whisper STT worker.
+    """
+    state_changed = pyqtSignal(str)       # 'loading', 'ready', 'wake_off', 'listening', 'transcribing', 'error'
+    command_recognized = pyqtSignal(str)  # transcribed user text
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._running = True
+        self.wake_enabled = False  # OFF by default to prevent false triggers
+        self.busy = False
+        self._manual_trigger = False
+        self._calibrated = False
+        self._audio_queue = queue.Queue()
+        self._pre_roll = collections.deque(maxlen=PRE_ROLL_CHUNKS)
+        self._speech_threshold = 320.0
+        self._whisper = None
+        self._oww = None
+
+    def trigger_push_to_talk(self):
+        self._manual_trigger = True
+
+    def set_wake_enabled(self, enabled: bool):
+        self.wake_enabled = bool(enabled)
+        if not self.busy:
+            self.state_changed.emit("ready" if self.wake_enabled else "wake_off")
+
+    def stop(self):
+        self._running = False
+
+    def _audio_cb(self, indata, frames, time_info, status):
+        self._audio_queue.put(indata.copy())
+
+    def _calibrate(self, duration: float = 0.8):
+        samples = []
+        t0 = time.time()
+        while time.time() - t0 < duration and self._running:
+            try:
+                chunk = self._audio_queue.get(timeout=0.15)
+                rms = float(np.sqrt(np.mean(chunk.flatten().astype(np.float32) ** 2)))
+                samples.append(rms)
+            except queue.Empty:
+                continue
+        if samples:
+            ambient = float(np.median(samples))
+            self._speech_threshold = max(200.0, ambient * 2.0)
+
+    def _transcribe(self, audio_float32: np.ndarray) -> str:
+        peak = np.max(np.abs(audio_float32))
+        if peak > 1e-4:
+            audio_float32 = (audio_float32 / peak) * 0.95
+        segments, _ = self._whisper.transcribe(
+            audio_float32,
+            language="en",
+            beam_size=1,
+            best_of=1,
+            temperature=0.0,
+            condition_on_previous_text=False,
+            initial_prompt=WHISPER_INITIAL_PROMPT,
+            vad_filter=True,
+            vad_parameters=dict(min_silence_duration_ms=300),
+        )
+        return " ".join(s.text.strip() for s in segments).strip()
+
+    def _record_and_transcribe(self):
+        self.state_changed.emit("listening")
+        _play_chime("activate")
+
+        recorded = list(self._pre_roll)
+        speech_started = False
+        silence_start = None
+        t0 = time.time()
+
+        for c in recorded:
+            if np.sqrt(np.mean(c.astype(np.float32) ** 2)) >= self._speech_threshold:
+                speech_started = True
+                break
+
+        while self._running:
+            try:
+                chunk = self._audio_queue.get(timeout=0.3)
+            except queue.Empty:
+                chunk = None
+
+            if chunk is None:
+                continue
+
+            flat = chunk.flatten()
+            recorded.append(flat)
+            rms = float(np.sqrt(np.mean(flat.astype(np.float32) ** 2)))
+            elapsed = time.time() - t0
+
+            if rms >= self._speech_threshold:
+                speech_started = True
+                silence_start = None
+            else:
+                if speech_started:
+                    if silence_start is None:
+                        silence_start = time.time()
+                    elif time.time() - silence_start >= SILENCE_TIMEOUT_SECONDS:
+                        break
+
+            if not speech_started and elapsed >= 4.5:
+                self.state_changed.emit("ready" if self.wake_enabled else "wake_off")
+                return
+
+            if elapsed >= MAX_RECORDING_SECONDS:
+                break
+
+        _play_chime("done")
+        if not recorded:
+            self.state_changed.emit("ready" if self.wake_enabled else "wake_off")
+            return
+
+        full_int16 = np.concatenate(recorded)
+        if len(full_int16) / SAMPLE_RATE < MIN_RECORDING_SECONDS:
+            self.state_changed.emit("ready" if self.wake_enabled else "wake_off")
+            return
+
+        self.state_changed.emit("transcribing")
+        audio_f32 = full_int16.astype(np.float32) / 32768.0
+        try:
+            text = self._transcribe(audio_f32)
         except Exception as e:
-            reply = f"Error: {e}"
-        self.result_ready.emit(reply)
+            print(f"[GUI Whisper Error] {e}")
+            text = ""
+
+        self.state_changed.emit("ready" if self.wake_enabled else "wake_off")
+        if not text:
+            return
+
+        cleaned = text
+        for prefix in ("hey jarvis,", "hey jarvis", "jarvis,", "jarvis"):
+            if cleaned.lower().startswith(prefix):
+                cleaned = cleaned[len(prefix):].strip(" ,:.-")
+                break
+        if not cleaned:
+            cleaned = text
+
+        self.command_recognized.emit(cleaned)
+
+    def _ensure_models_loaded(self) -> bool:
+        if self._whisper is not None and self._oww is not None:
+            return True
+        self.state_changed.emit("loading")
+        try:
+            if self._whisper is None:
+                self._whisper = WhisperModel(
+                    JARVIS_WHISPER_MODEL,
+                    device="cpu",
+                    compute_type="int8",
+                )
+            if self._oww is None:
+                try:
+                    self._oww = OwwModel(
+                        wakeword_models=[JARVIS_WAKE_WORD],
+                        inference_framework="onnx",
+                    )
+                except Exception:
+                    openwakeword.utils.download_models()
+                    self._oww = OwwModel(
+                        wakeword_models=[JARVIS_WAKE_WORD],
+                        inference_framework="onnx",
+                    )
+            return True
+        except Exception as e:
+            print(f"[GUI Voice Init Error] {e}")
+            self.state_changed.emit("error")
+            return False
+
+    def run(self):
+        if not VOICE_DEPS_AVAILABLE:
+            self.state_changed.emit("error")
+            return
+
+        self.state_changed.emit("ready" if self.wake_enabled else "wake_off")
+
+        while self._running:
+            # Stay completely idle (mic closed) while Voice is OFF and no manual trigger is requested
+            if not self.wake_enabled and not self._manual_trigger:
+                time.sleep(0.08)
+                continue
+
+            if not self._ensure_models_loaded():
+                self._manual_trigger = False
+                self.wake_enabled = False
+                time.sleep(0.5)
+                continue
+
+            try:
+                with sd.InputStream(
+                    samplerate=SAMPLE_RATE,
+                    channels=1,
+                    dtype="int16",
+                    blocksize=CHUNK_SAMPLES,
+                    callback=self._audio_cb,
+                ):
+                    if not self._calibrated:
+                        self._calibrate(0.6)
+                        self._calibrated = True
+                    self.state_changed.emit("ready" if self.wake_enabled else "wake_off")
+
+                    while self._running and (self.wake_enabled or self._manual_trigger):
+                        try:
+                            chunk = self._audio_queue.get(timeout=0.08)
+                        except queue.Empty:
+                            chunk = None
+
+                        if self.busy:
+                            if self._oww:
+                                self._oww.reset()
+                            self._pre_roll.clear()
+                            continue
+
+                        if self._manual_trigger:
+                            self._manual_trigger = False
+                            if self._oww:
+                                self._oww.reset()
+                            self._record_and_transcribe()
+                            if self._oww:
+                                self._oww.reset()
+                            self._pre_roll.clear()
+                            continue
+
+                        if chunk is None:
+                            continue
+
+                        flat = chunk.flatten()
+                        self._pre_roll.append(flat)
+
+                        if not self.wake_enabled:
+                            continue
+
+                        prediction = self._oww.predict(flat)
+                        score = float(prediction.get(JARVIS_WAKE_WORD, 0.0))
+                        if score >= JARVIS_WAKE_THRESHOLD:
+                            self._oww.reset()
+                            self._record_and_transcribe()
+                            self._oww.reset()
+                            self._pre_roll.clear()
+
+                # Clear stale audio queue after closing input stream
+                while not self._audio_queue.empty():
+                    try:
+                        self._audio_queue.get_nowait()
+                    except queue.Empty:
+                        break
+                self._pre_roll.clear()
+                self.state_changed.emit("ready" if self.wake_enabled else "wake_off")
+            except Exception as e:
+                print(f"[GUI Audio Stream Error] {e}")
+                self.state_changed.emit("error")
+                time.sleep(0.5)
 
 
 class HotkeyThread(QThread):
-    """Listens for a global Ctrl+Shift+J hotkey via the Windows API."""
-    triggered = pyqtSignal()
-    _HOTKEY_ID = 9001
+    """Listens for global Ctrl+Alt+J via Win32 RegisterHotKey."""
+    pressed = pyqtSignal()
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self._tid = None
+    MOD_ALT = 0x0001
+    MOD_CONTROL = 0x0002
+    VK_J = 0x4A
+    WM_HOTKEY = 0x0312
 
     def run(self):
         user32 = ctypes.windll.user32
-        self._tid = ctypes.windll.kernel32.GetCurrentThreadId()
-        MOD = 0x0002 | 0x0004           # CTRL + SHIFT
-        if not user32.RegisterHotKey(None, self._HOTKEY_ID, MOD, ord("J")):
-            return                       # silently skip on failure
-        msg = wintypes.MSG()
-        while user32.GetMessageW(ctypes.byref(msg), None, 0, 0) > 0:
-            if msg.message == 0x0312:    # WM_HOTKEY
-                self.triggered.emit()
-        user32.UnregisterHotKey(None, self._HOTKEY_ID)
-
-    def stop(self):
-        """Post WM_QUIT to break out of the GetMessageW loop."""
-        if self._tid:
-            ctypes.windll.user32.PostThreadMessageW(self._tid, 0x0012, 0, 0)
-
-
-# ══════════════════════════════════════════════════════════════════════
-#  COMPACT HUD WIDGET  (time, battery, volume, brightness)
-# ══════════════════════════════════════════════════════════════════════
-
-class HudWidget(GlowPanel):
-    """Small floating pill showing time + system vitals."""
-    expand_requested = pyqtSignal()
-
-    def __init__(self):
-        super().__init__(HUD_W, HUD_H)
-        self._build_ui()
-        self._start_timers()
-        self._position_default()
-
-    # ── build ─────────────────────────────────────────────────────────
-
-    def _build_ui(self):
-        root = QVBoxLayout(self)
-        m = GLOW + 8
-        root.setContentsMargins(m + 6, m + 4, m + 6, m + 4)
-        root.setSpacing(0)
-
-        # header
-        hdr = QLabel("JARVIS")
-        hdr.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        hdr.setStyleSheet(f"""
-            color: {COL_ACCENT.name()};  font-family: '{FONT}';
-            font-size: 13px; font-weight: bold;
-            letter-spacing: 4px; background: transparent;
-        """)
-        root.addWidget(hdr)
-        root.addSpacing(4)
-        root.addWidget(self._sep())
-        root.addSpacing(6)
-
-        # time
-        self._time_lbl = QLabel("--:--")
-        self._time_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._time_lbl.setStyleSheet(f"""
-            color: white; font-family: '{FONT}';
-            font-size: 26px; font-weight: 300; background: transparent;
-        """)
-        root.addWidget(self._time_lbl)
-
-        self._date_lbl = QLabel("---")
-        self._date_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._date_lbl.setStyleSheet(f"""
-            color: {COL_TEXT_DIM.name()}; font-family: '{FONT}';
-            font-size: 10px; background: transparent;
-        """)
-        root.addWidget(self._date_lbl)
-        root.addSpacing(6)
-        root.addWidget(self._sep())
-        root.addSpacing(8)
-
-        # stat rows
-        self._bat_lbl, self._bat_bar = self._make_stat("BAT")
-        self._vol_lbl, self._vol_bar = self._make_stat("VOL")
-        self._bri_lbl, self._bri_bar = self._make_stat("BRI")
-        for lbl, bar in [
-            (self._bat_lbl, self._bat_bar),
-            (self._vol_lbl, self._vol_bar),
-            (self._bri_lbl, self._bri_bar),
-        ]:
-            root.addWidget(lbl)
-            root.addWidget(bar)
-            root.addSpacing(8)
-
-        root.addWidget(self._sep())
-        root.addSpacing(8)
-
-        # expand button
-        btn = QPushButton("💬")
-        btn.setFixedSize(38, 38)
-        btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn.setStyleSheet(f"""
-            QPushButton {{
-                background: rgba(0,212,255,25);
-                border: 2px solid {COL_ACCENT.name()};
-                border-radius: 19px; color: {COL_ACCENT.name()};
-                font-size: 16px;
-            }}
-            QPushButton:hover {{ background: rgba(0,212,255,55); }}
-        """)
-        btn.clicked.connect(self.expand_requested.emit)
-        wrap = QWidget()
-        wrap.setStyleSheet("background:transparent;")
-        wl = QHBoxLayout(wrap)
-        wl.setContentsMargins(0, 0, 0, 0)
-        wl.addStretch(); wl.addWidget(btn); wl.addStretch()
-        root.addWidget(wrap)
-        root.addStretch()
-
-    # ── helpers ───────────────────────────────────────────────────────
-
-    @staticmethod
-    def _sep():
-        s = QFrame()
-        s.setFixedHeight(1)
-        s.setStyleSheet(f"background: {COL_SEP};")
-        return s
-
-    def _make_stat(self, tag):
-        lbl = QLabel(f"{tag}   ---")
-        lbl.setStyleSheet(f"""
-            color: {COL_TEXT_DIM.name()}; font-family: '{FONT}';
-            font-size: 11px; letter-spacing: 2px; background: transparent;
-        """)
-        return lbl, StatBar()
-
-    # ── timers ────────────────────────────────────────────────────────
-
-    def _start_timers(self):
-        t1 = QTimer(self)
-        t1.timeout.connect(self._tick_clock)
-        t1.start(1000)
-
-        t2 = QTimer(self)
-        t2.timeout.connect(self._tick_stats)
-        t2.start(5000)
-
-        self._tick_clock()
-        self._tick_stats()
-
-    def _tick_clock(self):
-        now = datetime.now()
-        self._time_lbl.setText(now.strftime("%I:%M %p").lstrip("0"))
-        self._date_lbl.setText(now.strftime("%a, %b %d"))
-
-    def _tick_stats(self):
-        # battery
-        pct, plugged = _read_battery()
-        if pct is not None:
-            icon = " ⚡" if plugged else ""
-            self._bat_lbl.setText(f"BAT   {pct}%{icon}")
-            self._bat_bar.setValue(pct)
-        else:
-            self._bat_lbl.setText("BAT   N/A")
-            self._bat_bar.setValue(0)
-
-        # volume
-        vol, muted = _read_volume()
-        if vol is not None:
-            icon = " 🔇" if muted else ""
-            self._vol_lbl.setText(f"VOL   {vol}%{icon}")
-            self._vol_bar.setValue(vol)
-        else:
-            self._vol_lbl.setText("VOL   N/A")
-            self._vol_bar.setValue(0)
-
-        # brightness
-        bri = _read_brightness()
-        if bri is not None:
-            self._bri_lbl.setText(f"BRI   {bri}%")
-            self._bri_bar.setValue(bri)
-        else:
-            self._bri_lbl.setText("BRI   N/A")
-            self._bri_bar.setValue(0)
-
-    # ── positioning ───────────────────────────────────────────────────
-
-    def _position_default(self):
-        scr = QApplication.primaryScreen().availableGeometry()
-        self.move(scr.width() - self.width() - 20,
-                  (scr.height() - self.height()) // 2)
-
-    # ── click-to-expand (only if the user didn't drag) ───────────────
-
-    def mouseReleaseEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton and self._drag_start:
-            delta = event.globalPosition().toPoint() - self._drag_start
-            if abs(delta.x()) + abs(delta.y()) < 6:
-                self.expand_requested.emit()
-        super().mouseReleaseEvent(event)
-
-
-# ══════════════════════════════════════════════════════════════════════
-#  EXPANDED CHAT PANEL
-# ══════════════════════════════════════════════════════════════════════
-
-class ChatPanel(GlowPanel):
-    """Full chat interface — messages, text input, quick-action bar."""
-    minimize_requested = pyqtSignal()
-
-    def __init__(self, agent):
-        super().__init__(CHAT_W, CHAT_H)
-        self._agent = agent
-        self._worker = None
-        self._thinking_bubble = None
-        self._thinking_timer = None
-        self._thinking_dots = 0
-        self._build_ui()
-        self._position_center()
-        # welcome message
-        self._add_message("Systems online. How can I help?", is_user=False)
-
-    # ── ui build ──────────────────────────────────────────────────────
-
-    def _build_ui(self):
-        root = QVBoxLayout(self)
-        m = GLOW + 6
-        root.setContentsMargins(m, m, m, m)
-        root.setSpacing(0)
-
-        # ── header ────────────────────────────────────────────────────
-        header = QWidget()
-        header.setStyleSheet("background: transparent;")
-        header.setFixedHeight(44)
-        hl = QHBoxLayout(header)
-        hl.setContentsMargins(8, 0, 4, 0)
-
-        title = QLabel("⬡  JARVIS")
-        title.setStyleSheet(f"""
-            color: {COL_ACCENT.name()}; font-family: '{FONT}';
-            font-size: 16px; font-weight: bold;
-            letter-spacing: 3px; background: transparent;
-        """)
-        hl.addWidget(title)
-        hl.addStretch()
-
-        min_btn = QPushButton("─")
-        min_btn.setFixedSize(30, 30)
-        min_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        min_btn.setStyleSheet(f"""
-            QPushButton {{
-                color: {COL_ACCENT.name()}; background: transparent;
-                border: 1px solid {COL_ACCENT_DIM.name()};
-                border-radius: 15px; font-size: 14px;
-            }}
-            QPushButton:hover {{ background: rgba(0,212,255,40); }}
-        """)
-        min_btn.clicked.connect(self.minimize_requested.emit)
-        hl.addWidget(min_btn)
-        root.addWidget(header)
-        root.addWidget(self._sep())
-
-        # ── chat area ─────────────────────────────────────────────────
-        self._scroll = QScrollArea()
-        self._scroll.setWidgetResizable(True)
-        self._scroll.setHorizontalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
-        )
-        self._scroll.setStyleSheet("""
-            QScrollArea { background: transparent; border: none; }
-            QScrollBar:vertical {
-                background: rgba(255,255,255,8); width: 6px; border: none;
-            }
-            QScrollBar::handle:vertical {
-                background: rgba(0,212,255,60); border-radius: 3px;
-                min-height: 30px;
-            }
-            QScrollBar::add-line:vertical,
-            QScrollBar::sub-line:vertical { height: 0; }
-        """)
-
-        container = QWidget()
-        container.setStyleSheet("background: transparent;")
-        self._chat_layout = QVBoxLayout(container)
-        self._chat_layout.setContentsMargins(4, 8, 4, 8)
-        self._chat_layout.setSpacing(4)
-        self._chat_layout.addStretch()          # keeps bubbles pinned to top
-        self._scroll.setWidget(container)
-        root.addWidget(self._scroll, 1)         # stretch factor = 1
-
-        # ── input row ─────────────────────────────────────────────────
-        root.addWidget(self._sep())
-        inp_row = QWidget()
-        inp_row.setStyleSheet("background: transparent;")
-        inp_row.setFixedHeight(46)
-        il = QHBoxLayout(inp_row)
-        il.setContentsMargins(6, 6, 6, 4)
-        il.setSpacing(6)
-
-        self._input = QLineEdit()
-        self._input.setPlaceholderText("Message JARVIS...")
-        self._input.setStyleSheet(f"""
-            QLineEdit {{
-                color: #DCE9F5; background: rgba(255,255,255,5);
-                border: 1px solid {COL_ACCENT_DIM.name()};
-                border-radius: 14px; padding: 6px 14px;
-                font-family: '{FONT}'; font-size: 13px;
-            }}
-            QLineEdit:focus {{ border: 1.5px solid {COL_ACCENT.name()}; }}
-        """)
-        self._input.returnPressed.connect(self._send)
-        il.addWidget(self._input)
-
-        send = QPushButton("➤")
-        send.setFixedSize(34, 34)
-        send.setCursor(Qt.CursorShape.PointingHandCursor)
-        send.setStyleSheet(f"""
-            QPushButton {{
-                background: {COL_ACCENT.name()};  border: none;
-                border-radius: 17px; color: #0A0F19;
-                font-size: 16px; font-weight: bold;
-            }}
-            QPushButton:hover {{ background: #33E0FF; }}
-        """)
-        send.clicked.connect(self._send)
-        il.addWidget(send)
-        root.addWidget(inp_row)
-
-        # ── quick-action bar ──────────────────────────────────────────
-        acts = QWidget()
-        acts.setStyleSheet("background: transparent;")
-        acts.setFixedHeight(40)
-        al = QHBoxLayout(acts)
-        al.setContentsMargins(6, 2, 6, 6)
-        al.setSpacing(6)
-
-        for icon, tip, fn in [
-            ("📷",  "Screenshot",      lambda: self._quick(take_screenshot)),
-            ("⏮",  "Previous track",  lambda: self._quick(lambda: control_media(action="previous"))),
-            ("⏯",  "Play / Pause",    lambda: self._quick(lambda: control_media(action="play_pause"))),
-            ("⏭",  "Next track",      lambda: self._quick(lambda: control_media(action="next"))),
-        ]:
-            b = QPushButton(icon)
-            b.setFixedSize(34, 30)
-            b.setToolTip(tip)
-            b.setCursor(Qt.CursorShape.PointingHandCursor)
-            b.setStyleSheet("""
-                QPushButton {
-                    background: rgba(0,212,255,15);
-                    border: 1px solid rgba(0,212,255,40);
-                    border-radius: 8px; font-size: 14px;
-                }
-                QPushButton:hover { background: rgba(0,212,255,40); }
-            """)
-            b.clicked.connect(fn)
-            al.addWidget(b)
-        al.addStretch()
-        root.addWidget(acts)
-
-    @staticmethod
-    def _sep():
-        s = QFrame()
-        s.setFixedHeight(1)
-        s.setStyleSheet(f"background: {COL_SEP};")
-        return s
-
-    # ── messaging ─────────────────────────────────────────────────────
-
-    def _add_message(self, text, is_user=True, is_system=False):
-        bubble = MessageBubble(text, is_user=is_user, is_system=is_system)
-        # insert before the trailing stretch
-        self._chat_layout.insertWidget(self._chat_layout.count() - 1, bubble)
-        QTimer.singleShot(20, self._scroll_bottom)
-
-    def _scroll_bottom(self):
-        sb = self._scroll.verticalScrollBar()
-        sb.setValue(sb.maximum())
-
-    def _send(self):
-        text = self._input.text().strip()
-        if not text or self._worker is not None:
+        if not user32.RegisterHotKey(None, 1, self.MOD_CONTROL | self.MOD_ALT, self.VK_J):
             return
-        self._input.clear()
-        self._add_message(text, is_user=True)
-        self._show_thinking()
-
-        self._worker = AgentWorker(self._agent, text, parent=self)
-        self._worker.result_ready.connect(self._on_reply)
-        self._worker.finished.connect(self._on_done)
-        self._worker.start()
-        self._input.setEnabled(False)
-
-    def _on_reply(self, reply):
-        self._hide_thinking()
-        self._add_message(reply, is_user=False)
-
-    def _on_done(self):
-        self._worker = None
-        self._input.setEnabled(True)
-        self._input.setFocus()
-
-    # ── thinking animation ────────────────────────────────────────────
-
-    def _show_thinking(self):
-        self._thinking_dots = 0
-        self._thinking_bubble = MessageBubble("Thinking.", is_user=False)
-        self._chat_layout.insertWidget(
-            self._chat_layout.count() - 1, self._thinking_bubble
-        )
-        self._thinking_timer = QTimer(self)
-        self._thinking_timer.timeout.connect(self._animate_dots)
-        self._thinking_timer.start(400)
-        QTimer.singleShot(20, self._scroll_bottom)
-
-    def _animate_dots(self):
-        self._thinking_dots = (self._thinking_dots + 1) % 4
-        if self._thinking_bubble:
-            self._thinking_bubble.set_text("Thinking" + "." * (self._thinking_dots + 1))
-
-    def _hide_thinking(self):
-        if self._thinking_timer:
-            self._thinking_timer.stop()
-            self._thinking_timer = None
-        if self._thinking_bubble:
-            self._thinking_bubble.setParent(None)
-            self._thinking_bubble.deleteLater()
-            self._thinking_bubble = None
-
-    # ── quick actions (direct tool calls, no LLM round-trip) ─────────
-
-    def _quick(self, fn):
         try:
-            result = str(fn())
-        except Exception as e:
-            result = f"Error: {e}"
-        self._add_message(result, is_user=False, is_system=True)
-
-    # ── positioning & keyboard ────────────────────────────────────────
-
-    def _position_center(self):
-        scr = QApplication.primaryScreen().availableGeometry()
-        self.move((scr.width() - self.width()) // 2,
-                  (scr.height() - self.height()) // 2)
-
-    def keyPressEvent(self, event):
-        if event.key() == Qt.Key.Key_Escape:
-            self.minimize_requested.emit()
-        else:
-            super().keyPressEvent(event)
-
-    def closeEvent(self, event):
-        event.ignore()
-        self.minimize_requested.emit()
+            msg = wintypes.MSG()
+            while user32.GetMessageW(ctypes.byref(msg), None, 0, 0) != 0:
+                if msg.message == self.WM_HOTKEY:
+                    self.pressed.emit()
+                user32.TranslateMessage(ctypes.byref(msg))
+                user32.DispatchMessageW(ctypes.byref(msg))
+        finally:
+            user32.UnregisterHotKey(None, 1)
 
 
 # ══════════════════════════════════════════════════════════════════════
-#  SYSTEM TRAY ICON
+#  STITCH WEBENGINE WINDOWS
 # ══════════════════════════════════════════════════════════════════════
 
-def _create_tray_icon() -> QIcon:
-    """Programmatically draw a cyan 'J' on a dark circle."""
-    px = QPixmap(64, 64)
-    px.fill(Qt.GlobalColor.transparent)
-    p = QPainter(px)
-    p.setRenderHint(QPainter.RenderHint.Antialiasing)
-    p.setBrush(COL_ACCENT)
-    p.setPen(Qt.PenStyle.NoPen)
-    p.drawEllipse(2, 2, 60, 60)
-    p.setPen(QColor(10, 15, 25))
-    p.setFont(QFont(FONT, 30, QFont.Weight.Bold))
-    p.drawText(px.rect(), Qt.AlignmentFlag.AlignCenter, "J")
-    p.end()
-    return QIcon(px)
+def _apply_win11_rounded_corners(widget):
+    """Applies native Windows 11 DWM rounded corners without WA_TranslucentBackground flicker."""
+    try:
+        hwnd = int(widget.winId())
+        DWMWA_WINDOW_CORNER_PREFERENCE = 33
+        DWMWCP_ROUND = 2
+        val = ctypes.c_int(DWMWCP_ROUND)
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            hwnd, DWMWA_WINDOW_CORNER_PREFERENCE, ctypes.byref(val), ctypes.sizeof(val)
+        )
+    except Exception:
+        pass
+
+
+class CompactWidgetWindow(QMainWindow):
+    """Frameless floating desktop widget (`/widget`)."""
+
+    def __init__(self, url: str):
+        super().__init__()
+        self.setWindowTitle("Jarvis Floating Widget")
+        self.pinned = True
+        self.setFixedSize(356, 652)
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint
+            | Qt.WindowType.WindowStaysOnTopHint
+            | Qt.WindowType.Tool
+        )
+        self.setStyleSheet("background-color: #0d0e11;")
+
+        self.view = QWebEngineView(self)
+        self.view.page().setBackgroundColor(QColor("#0d0e11"))
+        self.view.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
+        self.view.setUrl(QUrl(url))
+        self.setCentralWidget(self.view)
+        _apply_win11_rounded_corners(self)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        _apply_win11_rounded_corners(self)
+
+    def set_pinned(self, pinned: bool):
+        self.pinned = bool(pinned)
+        flags = Qt.WindowType.FramelessWindowHint | Qt.WindowType.Tool
+        if self.pinned:
+            flags |= Qt.WindowType.WindowStaysOnTopHint
+        self.setWindowFlags(flags)
+        self.show()
+        _apply_win11_rounded_corners(self)
+
+
+class MainHubWindow(QMainWindow):
+    """Full 5-Tab Jarvis Spatial Workspace (`/hub`) — lazily loaded on demand."""
+
+    def __init__(self, url: str):
+        super().__init__()
+        self.setWindowTitle("JARVIS — Spatial Neural Core")
+        self.pinned = False
+        self._target_url = url
+        self._loaded = False
+        self.resize(1360, 860)
+        self.setMinimumSize(960, 640)
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Window)
+        self.setStyleSheet("background-color: #121316;")
+
+        self.view = QWebEngineView(self)
+        self.view.page().setBackgroundColor(QColor("#121316"))
+        self.view.setContextMenuPolicy(Qt.ContextMenuPolicy.NoContextMenu)
+        self.setCentralWidget(self.view)
+        _apply_win11_rounded_corners(self)
+
+    def ensure_loaded(self):
+        if not self._loaded:
+            self._loaded = True
+            self.view.setUrl(QUrl(self._target_url))
+
+    def showEvent(self, event):
+        self.ensure_loaded()
+        super().showEvent(event)
+        _apply_win11_rounded_corners(self)
+
+    def set_pinned(self, pinned: bool):
+        self.pinned = bool(pinned)
+        flags = Qt.WindowType.FramelessWindowHint | Qt.WindowType.Window
+        if self.pinned:
+            flags |= Qt.WindowType.WindowStaysOnTopHint
+        self.setWindowFlags(flags)
+        self.show()
+        _apply_win11_rounded_corners(self)
 
 
 # ══════════════════════════════════════════════════════════════════════
-#  APPLICATION CONTROLLER — ties HUD, chat, tray, hotkey together
+#  MAIN APPLICATION ORCHESTRATOR
 # ══════════════════════════════════════════════════════════════════════
 
-class JarvisOverlay:
+class _GuiActionDispatcher(QObject):
+    """Marshals window actions from the HTTP server thread onto the Qt GUI thread."""
+    request_received = pyqtSignal(dict)
 
-    def __init__(self):
-        scheduler.start()
+
+class JarvisStitchApp(QObject):
+    """Coordinates the Stitch WebEngine windows, voice/TTS threads, and system tray."""
+
+    def __init__(self, app: QApplication, start_in_widget_mode: bool = True):
+        super().__init__()
+        self._app = app
         self._agent = JarvisAgent()
+        self._notified_hide_shortcut = False
 
-        # widgets
-        self.hud = HudWidget()
-        self.chat = ChatPanel(self._agent)
-        self.chat.hide()
+        # Background TTS & Voice workers
+        self._tts = TtsWorker()
+        self._tts.start()
 
-        # signals: HUD <-> Chat
-        self.hud.expand_requested.connect(self._show_chat)
-        self.chat.minimize_requested.connect(self._show_hud)
+        self._voice = GuiVoiceThread()
+        self._dispatcher = _GuiActionDispatcher()
+        self._dispatcher.request_received.connect(self._execute_window_action_on_main_thread)
 
-        # tray icon
-        self._tray = QSystemTrayIcon(_create_tray_icon())
-        self._tray.setToolTip("Jarvis")
+        # Bridge Controller + local HTTP server
+        self._controller = StitchBridgeController(
+            agent=self._agent,
+            tts_worker=self._tts,
+            voice_thread=self._voice,
+            window_callback=self._on_bridge_window_request,
+        )
+        self._port = start_bridge_http_server(self._controller)
+
+        # Connect Voice & TTS signals to Bridge Controller
+        self._voice.state_changed.connect(self._on_voice_state_changed)
+        self._voice.command_recognized.connect(self._on_voice_command)
+        self._tts.speaking_changed.connect(self._on_tts_speaking_changed)
+        self._voice.start()
+
+        # Create Windows (MainHubWindow is lazy-loaded only when opened)
+        self._widget_win = CompactWidgetWindow(f"http://127.0.0.1:{self._port}/widget")
+        self._hub_win = MainHubWindow(f"http://127.0.0.1:{self._port}/hub")
+
+        self._position_windows()
+        self._setup_tray()
+
+        self._hotkey = HotkeyThread()
+        self._hotkey.pressed.connect(self._toggle_visibility)
+        self._hotkey.start()
+
+        if start_in_widget_mode:
+            self._widget_win.show()
+            self._widget_win.raise_()
+            self._widget_win.activateWindow()
+        else:
+            self._hub_win.ensure_loaded()
+            self._hub_win.show()
+            self._hub_win.raise_()
+            self._hub_win.activateWindow()
+
+    def _position_windows(self):
+        screen = self._app.primaryScreen().availableGeometry()
+        # Center Main Hub Window
+        hx = screen.x() + max(0, (screen.width() - self._hub_win.width()) // 2)
+        hy = screen.y() + max(0, (screen.height() - self._hub_win.height()) // 2)
+        self._hub_win.move(hx, hy)
+
+        # Position Compact Floating Widget on top-right
+        wx = screen.right() - self._widget_win.width() - 20
+        wy = screen.top() + 30
+        self._widget_win.move(wx, wy)
+
+    def _on_voice_state_changed(self, state: str):
+        if state in ("listening", "transcribing", "loading", "error"):
+            self._controller.assistant_state = state
+        elif not self._controller.thinking:
+            self._controller.assistant_state = "ready"
+
+    def _on_voice_command(self, text: str):
+        self._controller.dispatch_command(text, is_voice=True)
+
+    def _on_tts_speaking_changed(self, is_speaking: bool):
+        if is_speaking:
+            self._controller.assistant_state = "speaking"
+            self._voice.busy = True
+        else:
+            if not self._controller.thinking:
+                self._controller.assistant_state = "ready"
+                self._voice.busy = False
+
+    def _on_bridge_window_request(self, payload: dict) -> dict:
+        self._dispatcher.request_received.emit(payload)
+        return {"ok": True}
+
+    @pyqtSlot(dict)
+    def _execute_window_action_on_main_thread(self, payload: dict):
+        target = payload.get("target", "hub")
+        action = payload.get("action", "")
+        win = self._widget_win if target == "widget" else self._hub_win
+
+        if action == "start_drag":
+            wh = win.windowHandle()
+            if wh is not None and wh.startSystemMove():
+                return
+            try:
+                hwnd = int(win.winId())
+                ctypes.windll.user32.ReleaseCapture()
+                ctypes.windll.user32.SendMessageW(hwnd, 0x00A1, 2, 0)
+            except Exception:
+                pass
+        elif action == "move_by":
+            dx = int(payload.get("dx", 0))
+            dy = int(payload.get("dy", 0))
+            win.move(win.x() + dx, win.y() + dy)
+        elif action == "resize":
+            w = max(280, int(payload.get("width", 356)))
+            h = max(100, int(payload.get("height", 652)))
+            self._widget_win.setFixedSize(w, h)
+            _apply_win11_rounded_corners(self._widget_win)
+        elif action == "toggle_pin":
+            win.set_pinned(not win.pinned)
+        elif action == "collapse":
+            self._widget_win.setFixedSize(356, 148)
+            _apply_win11_rounded_corners(self._widget_win)
+        elif action == "expand_pill":
+            self._widget_win.setFixedSize(356, 652)
+            _apply_win11_rounded_corners(self._widget_win)
+        elif action == "hide_widget":
+            self._widget_win.hide()
+            if not self._notified_hide_shortcut and hasattr(self, "_tray"):
+                self._notified_hide_shortcut = True
+                self._tray.showMessage(
+                    "Jarvis Popup Hidden",
+                    "Press Ctrl+Alt+J anytime to bring the popup back.",
+                    QSystemTrayIcon.MessageIcon.Information,
+                    2500,
+                )
+        elif action == "show":
+            self._widget_win.hide()
+            self._hub_win.ensure_loaded()
+            self._hub_win.showNormal()
+            self._hub_win.raise_()
+            self._hub_win.activateWindow()
+            view_name = payload.get("view")
+            if view_name:
+                self._hub_win.view.page().runJavaScript(
+                    f"if(window.switchJarvisView) window.switchJarvisView('{view_name}');"
+                )
+        elif action == "focus_widget_mode":
+            self._hub_win.hide()
+            self._widget_win.show()
+            self._widget_win.raise_()
+            self._widget_win.activateWindow()
+        elif action == "minimize":
+            win.showMinimized()
+        elif action == "toggle_maximize":
+            if win.isMaximized():
+                win.showNormal()
+            else:
+                win.showMaximized()
+        elif action == "hide":
+            # When closing Main Hub, drop into the Compact Floating Widget
+            self._hub_win.hide()
+            self._widget_win.show()
+            self._widget_win.raise_()
+
+    def _toggle_visibility(self):
+        """Global hotkey (Ctrl+Alt+J) or tray click: toggles popup visibility or returns from Hub to popup."""
+        if self._hub_win.isVisible():
+            self._hub_win.hide()
+            self._widget_win.show()
+            self._widget_win.raise_()
+            self._widget_win.activateWindow()
+        elif self._widget_win.isVisible():
+            self._widget_win.hide()
+        else:
+            self._widget_win.show()
+            self._widget_win.raise_()
+            self._widget_win.activateWindow()
+
+    def _setup_tray(self):
+        pix = QPixmap(32, 32)
+        pix.fill(Qt.GlobalColor.transparent)
+        p = QPainter(pix)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p.setBrush(QColor("#4b8eff"))
+        p.setPen(Qt.PenStyle.NoPen)
+        p.drawEllipse(4, 4, 24, 24)
+        p.setBrush(QColor("#121316"))
+        p.drawEllipse(10, 10, 12, 12)
+        p.end()
+
+        self._tray = QSystemTrayIcon(QIcon(pix), self._app)
+        self._tray.setToolTip("JARVIS — Spatial Neural Core (Ctrl+Alt+J)")
+
         menu = QMenu()
-        menu.setStyleSheet("""
-            QMenu {
-                background-color: #0A0F19; color: #DCE9F5;
-                border: 1px solid rgba(0,212,255,80); padding: 4px;
-            }
-            QMenu::item:selected { background: rgba(0,212,255,40); }
-            QMenu::separator {
-                height: 1px; background: rgba(0,212,255,30);
-                margin: 4px 8px;
-            }
-        """)
-        menu.addAction("Show HUD",      self._show_hud)
-        menu.addAction("Open Chat",     self._show_chat)
+        act_hub = menu.addAction("Open Jarvis Hub")
+        act_hub.triggered.connect(lambda: self._execute_window_action_on_main_thread({"target": "hub", "action": "show"}))
+
+        act_widget = menu.addAction("Switch to Floating Widget")
+        act_widget.triggered.connect(lambda: self._execute_window_action_on_main_thread({"target": "widget", "action": "focus_widget_mode"}))
+
         menu.addSeparator()
-        menu.addAction("Screenshot",    lambda: self._tray_action(take_screenshot))
-        menu.addAction("Mute / Unmute", lambda: self._tray_action(self._toggle_mute))
-        menu.addAction("Lock PC",       lambda: self._tray_action(lock_pc))
+        self._act_startup = menu.addAction("Launch on Windows Startup")
+        self._act_startup.setCheckable(True)
+        self._act_startup.setChecked(_is_startup_enabled())
+        self._act_startup.triggered.connect(self._toggle_startup)
+
         menu.addSeparator()
-        menu.addAction("Quit",          QApplication.instance().quit)
+        act_quit = menu.addAction("Quit Jarvis")
+        act_quit.triggered.connect(self._quit)
+
         self._tray.setContextMenu(menu)
         self._tray.activated.connect(self._on_tray_click)
         self._tray.show()
 
-        # global hotkey
-        self._hotkey = HotkeyThread()
-        self._hotkey.triggered.connect(self._toggle)
-        self._hotkey.start()
-
-        # show compact HUD on launch
-        self.hud.show()
-
-    # ── state transitions ─────────────────────────────────────────────
-
-    def _show_hud(self):
-        self.chat.hide()
-        self.hud.show()
-        self.hud.raise_()
-        self.hud.activateWindow()
-
-    def _show_chat(self):
-        self.hud.hide()
-        self.chat.show()
-        self.chat.raise_()
-        self.chat.activateWindow()
-        self.chat._input.setFocus()
-
-    def _toggle(self):
-        """Ctrl+Shift+J cycle: hidden -> HUD -> chat -> hidden."""
-        if self.chat.isVisible():
-            self.chat.hide()
-            self.hud.hide()
-        elif self.hud.isVisible():
-            self._show_chat()
-        else:
-            self._show_hud()
-
-    # ── tray ──────────────────────────────────────────────────────────
+    def _toggle_startup(self, checked: bool):
+        _set_startup_enabled(bool(checked))
+        self._act_startup.setChecked(_is_startup_enabled())
 
     def _on_tray_click(self, reason):
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
-            self._toggle()
+            self._toggle_visibility()
 
-    def _tray_action(self, fn):
-        try:
-            result = str(fn())
-        except Exception as e:
-            result = f"Error: {e}"
-        self._tray.showMessage(
-            "Jarvis", result,
-            QSystemTrayIcon.MessageIcon.Information, 2500,
-        )
-
-    @staticmethod
-    def _toggle_mute():
-        _, muted = _read_volume()
-        return unmute_audio() if muted else mute_audio()
-
-    # ── cleanup ───────────────────────────────────────────────────────
-
-    def cleanup(self):
-        self._hotkey.stop()
-        self._hotkey.wait(2000)
+    def _quit(self):
+        self._voice.stop()
+        self._tts.stop()
+        self._tray.hide()
+        self._app.quit()
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -855,21 +842,37 @@ class JarvisOverlay:
 # ══════════════════════════════════════════════════════════════════════
 
 def main():
-    print("=" * 50)
-    print("  JARVIS HUD OVERLAY")
-    print("=" * 50)
-    print("  • HUD          : floating on desktop")
-    print("  • Chat panel   : click HUD or Ctrl+Shift+J")
-    print("  • System tray  : right-click for quick actions")
-    print("  • Hotkey       : Ctrl+Shift+J (toggle)")
-    print("=" * 50 + "\n")
+    if "--install-startup" in sys.argv:
+        ok = _set_startup_enabled(True)
+        print("Registered Jarvis in Windows Startup." if ok else "Failed to register startup.")
+        return
+    if "--uninstall-startup" in sys.argv:
+        ok = _set_startup_enabled(False)
+        print("Removed Jarvis from Windows Startup." if ok else "Failed to remove startup.")
+        return
 
+    # Single-instance check: if Jarvis is already running, wake its popup and exit
+    _mutex = ctypes.windll.kernel32.CreateMutexW(None, False, "Local\\JarvisAssistantSingleton")
+    if ctypes.windll.kernel32.GetLastError() == 183:  # ERROR_ALREADY_EXISTS
+        try:
+            import urllib.request
+            req = urllib.request.Request(
+                f"http://127.0.0.1:{JARVIS_SERVER_PORT}/api/window",
+                data=b'{"target":"widget","action":"focus_widget_mode"}',
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            urllib.request.urlopen(req, timeout=1.5)
+        except Exception:
+            pass
+        return
+
+    scheduler.start()
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)
-
-    overlay = JarvisOverlay()
-    app.aboutToQuit.connect(overlay.cleanup)
-
+    start_in_widget = "--hub" not in sys.argv
+    _jarvis = JarvisStitchApp(app, start_in_widget_mode=start_in_widget)
+    print(f"Jarvis Liquid Spatial UI active on port {_jarvis._port} (0.0.0.0:{_jarvis._port}). Press Ctrl+Alt+J to show/hide popup.")
     sys.exit(app.exec())
 
 

@@ -1,43 +1,64 @@
 """
-Background reminder scheduler with persistent catch-up (Phase 5).
+Background reminder & countdown timer scheduler with persistent catch-up.
 
-Checks reminders.json every 20 seconds and fires Windows desktop notifications.
+Checks reminders.json and timers.json every 3 seconds and fires Windows desktop
+notifications (plus an audible chime when a timer completes).
 On startup, catches up on any reminders that came due while Jarvis was closed.
 """
 import json
 import threading
 import time
 from datetime import datetime
+from pathlib import Path
 
 from plyer import notification
+
+try:
+    import winsound
+except Exception:
+    winsound = None
 
 from config import DATA_DIR
 
 REMINDERS_FILE = DATA_DIR / "reminders.json"
-CHECK_INTERVAL_SECONDS = 20
+TIMERS_FILE = DATA_DIR / "timers.json"
+CHECK_INTERVAL_SECONDS = 3
 _started = False
 
 
-def _load():
-    if not REMINDERS_FILE.exists():
+def _load(path: Path):
+    if not path.exists():
         return []
     try:
-        return json.loads(REMINDERS_FILE.read_text(encoding="utf-8"))
+        return json.loads(path.read_text(encoding="utf-8"))
     except Exception:
         return []
 
 
-def _save(data):
+def _save(path: Path, data):
     try:
-        REMINDERS_FILE.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    except Exception:
+        pass
+
+
+def _ring_chime():
+    if winsound is None:
+        return
+    try:
+        for _ in range(2):
+            winsound.Beep(1000, 140)
+            winsound.Beep(1400, 180)
     except Exception:
         pass
 
 
 def _check_once():
-    reminders = _load()
     now = datetime.now()
-    changed = False
+
+    # 1. Check Reminders
+    reminders = _load(REMINDERS_FILE)
+    rem_changed = False
     for r in reminders:
         if r.get("fired") or not r.get("due"):
             continue
@@ -57,10 +78,38 @@ def _check_once():
                 )
             except Exception as e:
                 print(f"[scheduler] couldn't show notification: {e}")
+            _ring_chime()
             r["fired"] = True
-            changed = True
-    if changed:
-        _save(reminders)
+            rem_changed = True
+    if rem_changed:
+        _save(REMINDERS_FILE, reminders)
+
+    # 2. Check Countdown Timers
+    timers = _load(TIMERS_FILE)
+    tim_changed = False
+    for t in timers:
+        if t.get("fired") or not t.get("due"):
+            continue
+        try:
+            due = datetime.fromisoformat(t["due"])
+        except Exception:
+            continue
+
+        if now >= due:
+            label = t.get("label", "Timer")
+            try:
+                notification.notify(
+                    title="Jarvis Timer Complete",
+                    message=f"Your timer '{label}' is up!",
+                    timeout=15,
+                )
+            except Exception as e:
+                print(f"[scheduler] couldn't show timer notification: {e}")
+            _ring_chime()
+            t["fired"] = True
+            tim_changed = True
+    if tim_changed:
+        _save(TIMERS_FILE, timers)
 
 
 def _loop():
@@ -86,3 +135,6 @@ def start():
     _started = True
     thread = threading.Thread(target=_loop, daemon=True)
     thread.start()
+
+
+start_scheduler = start
