@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"surface-bright":"#38393c","background":"#121316","secondary-container":"#7508a5","primary-container":"#4b8eff","secondary-fixed":"#f6d9ff","surface-container-highest":"#343538","error-container":"#93000a","inverse-on-surface":"#2f3034","surface-container-low":"#1b1b1f","on-primary":"#002e69","on-surface":"#e3e2e6","surface-container":"#1f1f23","secondary-fixed-dim":"#e8b3ff","primary-fixed":"#d8e2ff","surface-container-high":"#292a2d","primary-fixed-dim":"#adc6ff","on-tertiary-container":"#00320e","on-tertiary-fixed":"#002107","tertiary-fixed":"#72fe88","inverse-surface":"#e3e2e6","tertiary-container":"#00a741","inverse-primary":"#005bc1","on-error-container":"#ffdad6","surface-tint":"#adc6ff","tertiary-fixed-dim":"#53e16f","surface-dim":"#121316","secondary":"#e8b3ff","outline":"#8b90a0","on-tertiary":"#003911","primary":"#adc6ff","on-primary-fixed":"#001a41","on-primary-container":"#00285c","surface":"#121316","on-secondary-fixed-variant":"#7201a2","on-secondary-fixed":"#310048","outline-variant":"#414755","on-secondary":"#510074","error":"#ffb4ab","on-secondary-container":"#e19fff","surface-container-lowest":"#0d0e11","on-background":"#e3e2e6","on-tertiary-fixed-variant":"#00531c","on-surface-variant":"#c1c6d7","on-primary-fixed-variant":"#004493","on-error":"#690005","tertiary":"#53e16f","surface-variant":"#343538"},"borderRadius":{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"},"spacing":{"space-lg":"1.5rem","margin-tablet":"1.5rem","gutter-desktop":"1.5rem","space-md":"1rem","space-sm":"0.5rem","margin-desktop":"2.5rem","space-xl":"2.25rem","space-xs":"0.25rem","margin":"1rem","gutter":"1rem"},"fontFamily":{"headline-sm":["Plus Jakarta Sans"],"body-sm":["Plus Jakarta Sans"],"body-md":["Plus Jakarta Sans"],"display-xl":["Plus Jakarta Sans"],"caption":["Plus Jakarta Sans"],"headline-lg":["Plus Jakarta Sans"],"display-xl-mobile":["Plus Jakarta Sans"],"body-lg":["Plus Jakarta Sans"],"label-md":["Plus Jakarta Sans"],"headline-md":["Plus Jakarta Sans"],"headline-lg-mobile":["Plus Jakarta Sans"],"label-sm":["Plus Jakarta Sans"]},"fontSize":{"headline-sm":["18px",{"lineHeight":"24px","letterSpacing":"-0.01em","fontWeight":"600"}],"body-sm":["13px",{"lineHeight":"18px","letterSpacing":"0.005em","fontWeight":"400"}],"body-md":["14px",{"lineHeight":"20px","letterSpacing":"0em","fontWeight":"400"}],"display-xl":["56px",{"lineHeight":"64px","letterSpacing":"-0.03em","fontWeight":"700"}],"caption":["10px",{"lineHeight":"12px","letterSpacing":"0.025em","fontWeight":"500"}],"headline-lg":["32px",{"lineHeight":"38px","letterSpacing":"-0.02em","fontWeight":"600"}],"display-xl-mobile":["36px",{"lineHeight":"42px","letterSpacing":"-0.025em","fontWeight":"700"}],"body-lg":["16px",{"lineHeight":"24px","letterSpacing":"-0.005em","fontWeight":"400"}],"label-md":["12px",{"lineHeight":"16px","letterSpacing":"0.01em","fontWeight":"500"}],"headline-md":["22px",{"lineHeight":"28px","letterSpacing":"-0.015em","fontWeight":"600"}],"headline-lg-mobile":["26px",{"lineHeight":"32px","letterSpacing":"-0.015em","fontWeight":"600"}],"label-sm":["11px",{"lineHeight":"14px","letterSpacing":"0.02em","fontWeight":"600"}]}}}}</script></head><body class="bg-surface font-body-md text-on-surface antialiased selection:bg-primary-container selection:text-on-primary"><aside class="fixed left-0 top-0 h-full w-72 bg-surface-container-lowest/80 backdrop-blur-2xl z-50 flex flex-col justify-between py-space-md shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex flex-col gap-space-lg px-space-md"><div class="flex items-center gap-space-sm px-space-xs pt-space-xs"><div class="w-9 h-9 rounded-xl bg-surface-container-high flex items-center justify-center shadow-[inset_0_1px_0_0_rgba(255,255,255,0.22)]"><span class="material-symbols-outlined text-primary text-[22px]">neurology</span></div><div class="flex flex-col"><div class="flex items-center gap-space-xs"><span class="font-headline-sm text-headline-sm text-on-surface font-bold tracking-tight">JARVIS</span><span class="font-caption text-caption uppercase px-1.5 py-0.5 rounded-full bg-surface-container-high text-primary font-semibold">v4.2</span></div><span class="font-label-sm text-label-sm text-on-surface-variant">Spatial Neural Core</span></div></div><div class="p-space-sm rounded-xl bg-surface-container/60 backdrop-blur-md flex flex-col gap-space-xs shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08)]"><div class="flex items-center justify-between"><span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-tertiary animate-pulse"></span>Neural Link</span><span class="font-label-sm text-label-sm text-tertiary font-medium">Online</span></div><div class="flex items-center justify-between"><span class="font-label-sm text-label-sm text-on-surface-variant flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px] text-primary">phone_iphone</span>iPhone Bridge</span><span class="font-label-sm text-label-sm text-primary font-medium">Synced</span></div></div><nav class="flex flex-col gap-1.5" data-active-classes="bg-primary-container text-on-primary-container font-semibold shadow-[0_4px_16px_-2px_rgba(75,142,255,0.3)]"><a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-xl font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="chat-voice" href="#"><span class="material-symbols-outlined text-[20px]">mic</span><span>Chat &amp; Voice</span></a><a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-xl font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="long-term-memory" href="#"><span class="material-symbols-outlined text-[20px]">psychology</span><span>Long-Term Memory</span></a><a aria-current="page" class="flex items-center gap-space-sm px-space-md py-2.5 rounded-xl transition-all bg-primary-container text-on-primary-container font-semibold shadow-[0_4px_16px_-2px_rgba(75,142,255,0.3)]" data-path="system-controls" href="#"><span class="material-symbols-outlined text-[20px]">terminal</span><span>System Controls</span></a><a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-xl font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="productivity-hub" href="#"><span class="material-symbols-outlined text-[20px]">grid_view</span><span>Productivity Hub</span></a><a class="flex items-center gap-space-sm px-space-md py-2.5 rounded-xl font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" data-path="settings-bridge" href="#"><span class="material-symbols-outlined text-[20px]">tune</span><span>Settings &amp; Bridge</span></a></nav></div><div class="px-space-md flex flex-col gap-space-sm"><div class="p-space-sm rounded-xl bg-surface-container-low/70 flex items-center justify-between"><div class="flex items-center gap-2"><span class="material-symbols-outlined text-primary text-[18px]">memory</span><div class="flex flex-col"><span class="font-label-sm text-label-sm text-on-surface-variant">Context Cache</span><span class="font-label-md text-label-md text-on-surface font-semibold">128k / 200k</span></div></div><div class="w-10 h-1.5 rounded-full bg-surface-container-highest overflow-hidden"><div class="h-full w-3/5 bg-primary rounded-full"></div></div></div></div></aside><div class="pl-72"><header class="fixed top-0 left-72 right-0 h-16 bg-surface-container-lowest/70 backdrop-blur-2xl z-40 flex items-center justify-between px-space-md shadow-[0_1px_8px_rgba(0,0,0,0.04)]"><div class="flex items-center gap-space-md"><div class="flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-high/80 border border-white/10"><span class="w-2.5 h-2.5 rounded-full bg-tertiary shadow-[0_0_8px_#53e16f]"></span><span class="font-label-sm text-label-sm text-on-surface font-medium uppercase tracking-wider">Ready</span></div><div class="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-low"><span class="material-symbols-outlined text-[15px] text-tertiary">bolt</span><span class="font-label-sm text-label-sm text-on-surface-variant">GPT-4o Omnimodal (Local Stream)</span></div></div><div class="flex items-center gap-space-sm"><button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container-high/80 hover:bg-surface-bright hover:text-on-surface text-on-surface-variant transition-all font-label-sm text-label-sm" type="button"><span class="material-symbols-outlined text-[16px]">picture_in_picture_alt</span><span>Floating Widget</span></button><div class="h-4 w-px bg-surface-container-highest"></div><div class="flex items-center gap-2"><button class="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" type="button"><span class="material-symbols-outlined text-[18px]">volume_up</span></button><button class="w-8 h-8 rounded-lg flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-all" type="button"><span class="material-symbols-outlined text-[18px]">notifications</span></button></div><div class="h-4 w-px bg-surface-container-highest"></div><div class="flex items-center"><button class="w-9 h-8 flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[16px]">minimize</span></button><button class="w-9 h-8 flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface transition-colors" type="button"><span class="material-symbols-outlined text-[14px]">crop_square</span></button><button class="w-9 h-8 flex items-center justify-center text-on-surface-variant hover:bg-error-container hover:text-on-error-container transition-colors" type="button"><span class="material-symbols-outlined text-[16px]">close</span></button></div><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center ml-1"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></header><main class="w-full pt-16 bg-surface"><div class="flex flex-col w-full px-space-md py-space-md gap-space-lg">
+<!-- Top Telemetry Readout & Timestamp Strip -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-space-md p-space-lg rounded-xl bg-surface-container-low/70 backdrop-blur-2xl shadow-xl relative overflow-hidden">
+<div class="absolute -right-16 -top-16 w-80 h-80 rounded-full bg-primary/5 blur-3xl pointer-events-none"></div>
+<div class="flex flex-col gap-1 relative z-10">
+<div class="flex items-center gap-space-xs">
+<span class="font-caption text-caption uppercase px-2 py-0.5 rounded-full bg-surface-container-high text-primary font-semibold tracking-wider">Telemetry Live</span>
+<span class="font-caption text-caption text-on-surface-variant flex items-center gap-1 font-mono">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+          PING 1.2ms // SECURE TUNNEL
+        </span>
+</div>
+<div class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+<span class="font-display-xl text-display-xl tracking-tight text-on-surface font-bold font-mono" id="system-digital-clock">08:35:42 PM</span>
+<span class="font-headline-md text-headline-md text-on-surface-variant font-medium">Tuesday, November 10</span>
+</div>
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px] text-primary">desktop_windows</span>
+<span class="font-body-sm text-body-sm font-medium">Stark Tower Workstation</span>
+<span class="text-outline-variant font-mono">/</span>
+<span class="font-body-sm text-body-sm text-primary">Windows 11 Pro (Build 26100.1742)</span>
+</div>
+</div>
+<!-- Quick Hardware Mini Specs -->
+<div class="flex items-center gap-space-sm relative z-10">
+<div class="flex flex-col p-space-sm rounded-lg bg-surface-container/80 backdrop-blur-md min-w-[130px]">
+<div class="flex justify-between items-center mb-1">
+<span class="font-caption text-caption text-on-surface-variant font-medium">CPU (i9-14900K)</span>
+<span class="font-caption text-caption text-tertiary font-mono">18%</span>
+</div>
+<div class="w-full h-1.5 rounded-full bg-surface-container-highest overflow-hidden">
+<div class="h-full w-[18%] bg-tertiary rounded-full"></div>
+</div>
+<span class="font-caption text-caption text-on-surface-variant mt-1">5.8 GHz // 24 Cores</span>
+</div>
+<div class="flex flex-col p-space-sm rounded-lg bg-surface-container/80 backdrop-blur-md min-w-[130px]">
+<div class="flex justify-between items-center mb-1">
+<span class="font-caption text-caption text-on-surface-variant font-medium">RAM (DDR5)</span>
+<span class="font-caption text-caption text-primary font-mono">44%</span>
+</div>
+<div class="w-full h-1.5 rounded-full bg-surface-container-highest overflow-hidden">
+<div class="h-full w-[44%] bg-primary rounded-full"></div>
+</div>
+<span class="font-caption text-caption text-on-surface-variant mt-1">28.1 / 64 GB</span>
+</div>
+<div class="flex flex-col p-space-sm rounded-lg bg-surface-container/80 backdrop-blur-md min-w-[130px]">
+<div class="flex justify-between items-center mb-1">
+<span class="font-caption text-caption text-on-surface-variant font-medium">GPU (RTX 4090)</span>
+<span class="font-caption text-caption text-secondary font-mono">32%</span>
+</div>
+<div class="w-full h-1.5 rounded-full bg-surface-container-highest overflow-hidden">
+<div class="h-full w-[32%] bg-secondary rounded-full"></div>
+</div>
+<span class="font-caption text-caption text-on-surface-variant mt-1">52°C // 24GB VRAM</span>
+</div>
+</div>
+</div>
+<!-- Primary System Gauges Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-md">
+<!-- Card 1: Battery Telemetry -->
+<div class="flex flex-col justify-between p-space-lg rounded-xl bg-surface-container-low/80 backdrop-blur-xl shadow-lg relative group">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-xl bg-tertiary-container/30 text-tertiary flex items-center justify-center">
+<span class="material-symbols-outlined text-[22px]">bolt</span>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">Battery Reserve</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Charging Superfast</span>
+</div>
+</div>
+<span class="font-caption text-caption uppercase px-2 py-0.5 rounded-full bg-tertiary-container text-on-tertiary font-bold tracking-wide">65W AC</span>
+</div>
+<div class="my-space-md flex flex-col gap-2">
+<div class="flex items-baseline justify-between">
+<span class="font-display-xl text-display-xl font-bold font-mono text-tertiary">88<span class="text-headline-md font-sans font-medium text-on-surface">%</span></span>
+<span class="font-label-md text-label-md text-on-surface-variant">Est. 18m to full</span>
+</div>
+<div class="w-full h-3 rounded-full bg-surface-container-highest p-0.5 relative overflow-hidden">
+<div class="h-full w-[88%] bg-gradient-to-r from-tertiary-container via-tertiary to-tertiary-fixed rounded-full shadow-[0_0_12px_#53e16f]"></div>
+</div>
+</div>
+<div class="flex items-center justify-between pt-space-xs text-on-surface-variant font-label-sm text-label-sm">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[15px]">power</span>Attached: Thunderbolt 4 Dock</span>
+<span class="font-mono">Health: 97%</span>
+</div>
+</div>
+<!-- Card 2: Audio Master Volume & Routing -->
+<div class="flex flex-col justify-between p-space-lg rounded-xl bg-surface-container-low/80 backdrop-blur-xl shadow-lg relative">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-xl bg-primary-container/30 text-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-[22px]" id="audio-icon-indicator">volume_up</span>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">Master Audio</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Spatial DSP Engine</span>
+</div>
+</div>
+<button class="px-2.5 py-1 rounded-lg bg-surface-container-high hover:bg-surface-bright text-on-surface font-label-sm text-label-sm font-medium transition-all flex items-center gap-1" id="btn-toggle-mute" type="button">
+<span class="material-symbols-outlined text-[15px]">volume_off</span>
+<span id="mute-label">Mute</span>
+</button>
+</div>
+<div class="my-space-md flex flex-col gap-2">
+<div class="flex items-baseline justify-between">
+<span class="font-display-xl text-display-xl font-bold font-mono text-on-surface" id="volume-val-display">52<span class="text-headline-md font-sans font-medium text-on-surface-variant">%</span></span>
+<span class="font-label-md text-label-md text-primary font-mono">DTS:X Ultra</span>
+</div>
+<div class="relative flex items-center">
+<input class="w-full h-2 bg-surface-container-highest rounded-lg appearance-none cursor-pointer accent-primary focus:outline-none" id="master-vol-range" max="100" min="0" type="range" value="52"/>
+</div>
+</div>
+<!-- Device Dropdown Platter -->
+<div class="flex items-center justify-between p-2 rounded-lg bg-surface-container/60">
+<div class="flex items-center gap-2 truncate">
+<span class="material-symbols-outlined text-primary text-[18px]">speaker</span>
+<span class="font-label-sm text-label-sm text-on-surface font-medium truncate">Realtek Audio High Definition</span>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant text-[16px] cursor-pointer hover:text-on-surface">expand_more</span>
+</div>
+</div>
+<!-- Card 3: Screen Brightness & Night Light -->
+<div class="flex flex-col justify-between p-space-lg rounded-xl bg-surface-container-low/80 backdrop-blur-xl shadow-lg relative">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-xl bg-secondary-container/30 text-secondary flex items-center justify-center">
+<span class="material-symbols-outlined text-[22px]">brightness_medium</span>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">Display Lumens</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">OLED HDR 1000 TrueBlack</span>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-caption text-caption text-on-surface-variant font-medium">Night Light</span>
+<button aria-pressed="true" class="w-11 h-6 rounded-full bg-secondary transition-colors relative flex items-center px-0.5 cursor-pointer" id="toggle-night-light" type="button">
+<span class="w-5 h-5 rounded-full bg-surface-container-lowest shadow-md transform translate-x-5 transition-transform" id="night-light-thumb"></span>
+</button>
+</div>
+</div>
+<div class="my-space-md flex flex-col gap-2">
+<div class="flex items-baseline justify-between">
+<span class="font-display-xl text-display-xl font-bold font-mono text-on-surface" id="brightness-val-display">75<span class="text-headline-md font-sans font-medium text-on-surface-variant">%</span></span>
+<span class="font-label-md text-label-md text-secondary font-mono">420 nits // 165Hz</span>
+</div>
+<div class="relative flex items-center">
+<input class="w-full h-2 bg-surface-container-highest rounded-lg appearance-none cursor-pointer accent-secondary focus:outline-none" id="screen-bright-range" max="100" min="10" type="range" value="75"/>
+</div>
+</div>
+<div class="flex items-center justify-between pt-space-xs text-on-surface-variant font-label-sm text-label-sm">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[15px] text-secondary">mode_night</span>Warmth: 3400K (Active)</span>
+<span class="font-mono">G-Sync Ready</span>
+</div>
+</div>
+</div>
+<!-- Media Playback Transport Module -->
+<div class="p-space-lg rounded-xl bg-surface-container-low/90 backdrop-blur-2xl shadow-xl flex flex-col lg:flex-row items-center justify-between gap-space-lg relative overflow-hidden">
+<div class="absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-primary via-secondary to-tertiary"></div>
+<!-- Album Art & Meta -->
+<div class="flex items-center gap-space-md w-full lg:w-auto">
+<div class="relative w-20 h-20 rounded-xl overflow-hidden shadow-2xl flex-shrink-0 group">
+<img class="w-full h-full object-cover" data-alt="Cyberpunk high-definition synthesizer cassette tape glowing with magenta and cyan neon backlight, ambient vaporwave aesthetic, 8k resolution, crisp studio album cover photography." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDEOb3nPagL-G4yLzRziSU7_U0AaAjm0yhVvEzmAlAIYvJ0ZudEkIYcjTSz0XfXWtKv4WWmcmV_KEpuEL_5iq7PB6uhPAPkpnPVMWV7LAJjjrV7Rdx6tBXqnTJoeHw8vpBG-Fl7cRBwCvYUY2o_Q6Uk3r36w0WDsO9fxuRJbZ9Md62jOTVs4NDdf-01lMlClT2UA90gfwtRhadM07ESdTVRRu8TIWxakfIZ8ijnhg"/>
+<div class="absolute inset-0 bg-primary/20 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-[24px]">graphic_eq</span>
+</div>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-caption text-caption uppercase px-1.5 py-0.5 rounded bg-primary-container/40 text-primary font-bold">Now Playing</span>
+<span class="font-caption text-caption text-on-surface-variant font-mono">Lossless FLAC 96kHz</span>
+</div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface font-semibold truncate mt-0.5">Synthwave Spatial Mix // Track 04</h4>
+<p class="font-body-md text-body-md text-on-surface-variant truncate">Horizon (Original Master Mix) - Stark Audio Labs</p>
+</div>
+</div>
+<!-- Center Scrubbing & Controls -->
+<div class="flex flex-col items-center gap-2 w-full lg:max-w-xl">
+<div class="flex items-center gap-space-md">
+<button class="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all" type="button">
+<span class="material-symbols-outlined text-[20px]">shuffle</span>
+</button>
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all" id="media-prev" type="button">
+<span class="material-symbols-outlined text-[26px]">skip_previous</span>
+</button>
+<button class="w-14 h-14 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shadow-[0_0_24px_rgba(75,142,255,0.45)] hover:bg-primary transition-all" id="media-play-pause" type="button">
+<span class="material-symbols-outlined text-[32px]" id="play-pause-icon">pause</span>
+</button>
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all" id="media-next" type="button">
+<span class="material-symbols-outlined text-[26px]">skip_next</span>
+</button>
+<button class="w-9 h-9 rounded-full flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-all" type="button">
+<span class="material-symbols-outlined text-[20px]">repeat</span>
+</button>
+</div>
+<!-- Scrub Bar -->
+<div class="w-full flex items-center gap-space-sm">
+<span class="font-caption text-caption text-on-surface-variant font-mono">02:14</span>
+<div class="w-full h-1.5 rounded-full bg-surface-container-highest cursor-pointer relative group">
+<div class="h-full w-[49%] bg-primary rounded-full relative">
+<span class="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white opacity-0 group-hover:opacity-100 transition-opacity shadow-md"></span>
+</div>
+</div>
+<span class="font-caption text-caption text-on-surface-variant font-mono">04:30</span>
+</div>
+</div>
+<!-- Quick Audio Output Volume Slider -->
+<div class="hidden xl:flex items-center gap-2 min-w-[140px]">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">volume_down</span>
+<input class="w-24 h-1.5 bg-surface-container-highest rounded-lg appearance-none cursor-pointer accent-primary" max="100" min="0" type="range" value="65"/>
+<span class="material-symbols-outlined text-on-surface-variant text-[18px]">airplay</span>
+</div>
+</div>
+<!-- Bento Grid: One-Click Windows Actions & Process Control Hub -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-md">
+<!-- Left Column: Vision, Screenshot, Clipboard (7 cols) -->
+<div class="lg:col-span-7 flex flex-col gap-space-md">
+<!-- One-Click Primary Trigger Buttons -->
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-space-sm">
+<!-- Action 1: Screenshot -->
+<button class="group flex flex-col justify-between p-space-md rounded-xl bg-surface-container-low hover:bg-surface-container transition-all text-left shadow-md" id="btn-take-screenshot" type="button">
+<div class="flex items-center justify-between w-full">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high group-hover:bg-primary-container group-hover:text-on-primary-container text-primary flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined text-[22px]">screenshot_monitor</span>
+</div>
+<span class="font-caption text-caption font-mono text-on-surface-variant group-hover:text-primary transition-colors">WIN + PRTSC</span>
+</div>
+<div class="mt-space-md">
+<h5 class="font-headline-sm text-headline-sm text-on-surface font-semibold">Take Screenshot</h5>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Auto-saves to Pictures\Jarvis_Screenshots with OCR index.</p>
+</div>
+<div class="hidden items-center gap-2 mt-2 pt-2 text-tertiary font-label-sm text-label-sm" id="screenshot-feedback">
+<span class="material-symbols-outlined text-[15px]">check_circle</span>
+<span>Saved: SCR_20241110_2035.png</span>
+</div>
+</button>
+<!-- Action 2: Screen Error AI Vision -->
+<button class="group flex flex-col justify-between p-space-md rounded-xl bg-surface-container-low hover:bg-surface-container transition-all text-left shadow-md" id="btn-analyze-screen" type="button">
+<div class="flex items-center justify-between w-full">
+<div class="w-10 h-10 rounded-lg bg-secondary-container/40 text-secondary group-hover:bg-secondary group-hover:text-on-secondary flex items-center justify-center transition-colors">
+<span class="material-symbols-outlined text-[22px]">visibility</span>
+</div>
+<span class="font-caption text-caption uppercase px-1.5 py-0.5 rounded bg-secondary-container/40 text-secondary font-bold">GPT-4o Vision</span>
+</div>
+<div class="mt-space-md">
+<h5 class="font-headline-sm text-headline-sm text-on-surface font-semibold">Analyze Screen Error</h5>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Diagnose exceptions, stack traces, or UI anomalies via multimodal neural scan.</p>
+</div>
+<div class="flex items-center gap-1.5 mt-2 pt-2 text-on-surface-variant font-label-sm text-label-sm" id="ai-vision-status">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span>Active Window: Visual Studio Code</span>
+</div>
+</button>
+</div>
+<!-- Live Clipboard Inspection Platter -->
+<div class="p-space-lg rounded-xl bg-surface-container-low/90 backdrop-blur-xl shadow-lg flex flex-col justify-between gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">content_paste</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">Windows Clipboard Inspector</span>
+</div>
+<div class="flex items-center gap-1.5">
+<button class="px-3 py-1 rounded-lg bg-surface-container-high hover:bg-surface-bright text-on-surface font-label-sm text-label-sm font-medium flex items-center gap-1 transition-all" id="btn-copy-clip" type="button">
+<span class="material-symbols-outlined text-[15px]">content_copy</span>
+<span>Copy</span>
+</button>
+<button class="px-2.5 py-1 rounded-lg bg-surface-container-high hover:bg-error-container hover:text-on-error-container text-on-surface-variant font-label-sm text-label-sm font-medium transition-all" id="btn-clear-clip" type="button">
+<span class="material-symbols-outlined text-[15px]">backspace</span>
+</button>
+</div>
+</div>
+<div class="p-space-md rounded-lg bg-surface-container-lowest font-mono font-body-sm text-body-sm text-tertiary flex items-center justify-between shadow-inner">
+<span class="truncate" id="clipboard-preview-text">git pull origin main --rebase</span>
+<span class="font-caption text-caption text-on-surface-variant ml-2 uppercase font-sans">Shell Script</span>
+</div>
+<div class="flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm pt-1">
+<span>Synced with iPhone Universal Clipboard</span>
+<span class="text-outline">Updated 2m ago</span>
+</div>
+</div>
+<!-- Quick Folder Launchers -->
+<div class="p-space-lg rounded-xl bg-surface-container-low/90 backdrop-blur-xl shadow-lg flex flex-col gap-space-sm">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]">folder_open</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">Quick Explorer Launchers</span>
+</div>
+<span class="font-caption text-caption text-on-surface-variant font-mono">SHELL:EXPLORER</span>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1">
+<button class="flex flex-col items-center justify-center p-3 rounded-xl bg-surface-container/60 hover:bg-surface-container-high transition-all group" type="button">
+<span class="material-symbols-outlined text-primary text-[28px] group-hover:scale-110 transition-transform">download</span>
+<span class="font-label-sm text-label-sm text-on-surface font-medium mt-1.5">Downloads</span>
+<span class="font-caption text-caption text-on-surface-variant font-mono mt-0.5">14.2 GB</span>
+</button>
+<button class="flex flex-col items-center justify-center p-3 rounded-xl bg-surface-container/60 hover:bg-surface-container-high transition-all group" type="button">
+<span class="material-symbols-outlined text-primary text-[28px] group-hover:scale-110 transition-transform">description</span>
+<span class="font-label-sm text-label-sm text-on-surface font-medium mt-1.5">Documents</span>
+<span class="font-caption text-caption text-on-surface-variant font-mono">1.8 GB</span>
+</button>
+<button class="flex flex-col items-center justify-center p-3 rounded-xl bg-surface-container/60 hover:bg-surface-container-high transition-all group" type="button">
+<span class="material-symbols-outlined text-primary text-[28px] group-hover:scale-110 transition-transform">desktop_windows</span>
+<span class="font-label-sm text-label-sm text-on-surface font-medium mt-1.5">Desktop</span>
+<span class="font-caption text-caption text-on-surface-variant font-mono">3 Files</span>
+</button>
+<button class="flex flex-col items-center justify-center p-3 rounded-xl bg-surface-container/60 hover:bg-surface-container-high transition-all group" type="button">
+<span class="material-symbols-outlined text-primary text-[28px] group-hover:scale-110 transition-transform">image</span>
+<span class="font-label-sm text-label-sm text-on-surface font-medium mt-1.5">Pictures</span>
+<span class="font-caption text-caption text-on-surface-variant font-mono">842 Files</span>
+</button>
+<button class="flex flex-col items-center justify-center p-3 rounded-xl bg-surface-container/60 hover:bg-surface-container-high transition-all group col-span-2 sm:col-span-1" type="button">
+<span class="material-symbols-outlined text-secondary text-[28px] group-hover:scale-110 transition-transform">source</span>
+<span class="font-label-sm text-label-sm text-on-surface font-medium mt-1.5">Repos</span>
+<span class="font-caption text-caption text-on-surface-variant font-mono">C:\Dev</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Right Column: Process Killer, Security Lock & System Actions (5 cols) -->
+<div class="lg:col-span-5 flex flex-col gap-space-md">
+<!-- Lock PC Workstation Platter -->
+<div class="p-space-lg rounded-xl bg-surface-container-low/90 backdrop-blur-xl shadow-lg flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-xl bg-error-container/20 text-error flex items-center justify-center">
+<span class="material-symbols-outlined text-[22px]">lock</span>
+</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">Security State</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Windows Hello: Armed</span>
+</div>
+</div>
+<button class="px-4 py-2 rounded-xl bg-error-container hover:bg-red-800 text-on-error-container font-label-md text-label-md font-semibold flex items-center gap-1.5 transition-all shadow-md" id="btn-lock-workstation" type="button">
+<span class="material-symbols-outlined text-[16px]">power_settings_new</span>
+<span>Lock Workstation</span>
+</button>
+</div>
+<!-- App Launcher & Process Killer Module -->
+<div class="p-space-lg rounded-xl bg-surface-container-low/90 backdrop-blur-xl shadow-lg flex flex-col gap-space-md flex-1">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[20px]">memory_alt</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">Process Supervisor</span>
+</div>
+<span class="font-caption text-caption text-on-surface-variant font-mono">TASKMGR BRIDGE</span>
+</div>
+<!-- CLI / Command Input -->
+<div class="flex flex-col gap-2">
+<div class="relative">
+<input class="w-full h-10 px-3 pr-8 rounded-lg bg-surface-container-highest text-on-surface placeholder:text-on-surface-variant font-body-sm text-body-sm focus:outline-none focus:ring-1 focus:ring-primary" id="process-input-field" placeholder="Launch executable or terminate PID..." type="text"/>
+<span class="material-symbols-outlined absolute right-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-[18px]">terminal</span>
+</div>
+<div class="flex items-center gap-2">
+<button class="flex-1 py-2 rounded-lg bg-primary-container text-on-primary-container hover:bg-primary font-label-sm text-label-sm font-semibold transition-all flex items-center justify-center gap-1" id="btn-open-app" type="button">
+<span class="material-symbols-outlined text-[16px]">play_arrow</span>
+<span>Open App</span>
+</button>
+<button class="flex-1 py-2 rounded-lg bg-surface-container-high text-error hover:bg-error-container hover:text-on-error-container font-label-sm text-label-sm font-semibold transition-all flex items-center justify-center gap-1" id="btn-force-close-app" type="button">
+<span class="material-symbols-outlined text-[16px]">cancel</span>
+<span>Force-Close</span>
+</button>
+</div>
+</div>
+<!-- Active Processes Pill List -->
+<div class="flex flex-col gap-2 mt-1">
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider font-semibold">High Resource Processes</span>
+<div class="flex flex-col gap-2" id="processes-container">
+<!-- Proc 1 -->
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-surface-container/60 hover:bg-surface-container-high transition-all">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">code</span>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface font-semibold">VS Code</span>
+<span class="font-caption text-caption text-on-surface-variant font-mono">PID 14208 // 1.2 GB RAM</span>
+</div>
+</div>
+<button class="btn-kill-proc px-2.5 py-1 rounded bg-surface-container-highest hover:bg-error-container hover:text-on-error-container text-error font-caption text-caption font-semibold transition-colors flex items-center gap-1" type="button">
+<span>Kill</span>
+</button>
+</div>
+<!-- Proc 2 -->
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-surface-container/60 hover:bg-surface-container-high transition-all">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-[18px]">public</span>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Chrome (8 Tabs)</span>
+<span class="font-caption text-caption text-on-surface-variant font-mono">PID 8932 // 2.4 GB RAM</span>
+</div>
+</div>
+<button class="btn-kill-proc px-2.5 py-1 rounded bg-surface-container-highest hover:bg-error-container hover:text-on-error-container text-error font-caption text-caption font-semibold transition-colors flex items-center gap-1" type="button">
+<span>Kill</span>
+</button>
+</div>
+<!-- Proc 3 -->
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-surface-container/60 hover:bg-surface-container-high transition-all">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]">deployed_code</span>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Docker Desktop</span>
+<span class="font-caption text-caption text-on-surface-variant font-mono">PID 2104 // 3.8 GB RAM</span>
+</div>
+</div>
+<button class="btn-kill-proc px-2.5 py-1 rounded bg-surface-container-highest hover:bg-error-container hover:text-on-error-container text-error font-caption text-caption font-semibold transition-colors flex items-center gap-1" type="button">
+<span>Kill</span>
+</button>
+</div>
+<!-- Proc 4 -->
+<div class="flex items-center justify-between p-2.5 rounded-lg bg-surface-container/60 hover:bg-surface-container-high transition-all">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-[18px]">music_note</span>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface font-semibold">Spotify Music</span>
+<span class="font-caption text-caption text-on-surface-variant font-mono">PID 11048 // 420 MB</span>
+</div>
+</div>
+<button class="btn-kill-proc px-2.5 py-1 rounded bg-surface-container-highest hover:bg-error-container hover:text-on-error-container text-error font-caption text-caption font-semibold transition-colors flex items-center gap-1" type="button">
+<span>Kill</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+  (function initJarvisHardwareControls() {
+    // Dynamic Digital Clock
+    const clockEl = document.getElementById('system-digital-clock');
+    function updateClock() {
+      const now = new Date();
+      let hours = now.getHours();
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? String(hours).padStart(2, '0') : '12';
+      if (clockEl) {
+        clockEl.textContent = `${hours}:${minutes}:${seconds} ${ampm}`;
+      }
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Volume Slider & Mute Toggle
+    const volRange = document.getElementById('master-vol-range');
+    const volDisplay = document.getElementById('volume-val-display');
+    const volIcon = document.getElementById('audio-icon-indicator');
+    const btnMute = document.getElementById('btn-toggle-mute');
+    const muteLabel = document.getElementById('mute-label');
+    let isMuted = false;
+    let prevVolume = 52;
+
+    if (volRange && volDisplay) {
+      volRange.addEventListener('input', (e) => {
+        const val = e.target.value;
+        volDisplay.innerHTML = `${val}<span class="text-headline-md font-sans font-medium text-on-surface-variant">%</span>`;
+        if (isMuted && val > 0) {
+          isMuted = false;
+          muteLabel.textContent = 'Mute';
+          volIcon.textContent = 'volume_up';
+        }
+      });
+    }
+
+    if (btnMute) {
+      btnMute.addEventListener('click', () => {
+        isMuted = !isMuted;
+        if (isMuted) {
+          prevVolume = volRange.value;
+          volRange.value = 0;
+          volDisplay.innerHTML = `0<span class="text-headline-md font-sans font-medium text-on-surface-variant">%</span>`;
+          volIcon.textContent = 'volume_off';
+          muteLabel.textContent = 'Unmute';
+        } else {
+          volRange.value = prevVolume || 52;
+          volDisplay.innerHTML = `${volRange.value}<span class="text-headline-md font-sans font-medium text-on-surface-variant">%</span>`;
+          volIcon.textContent = 'volume_up';
+          muteLabel.textContent = 'Mute';
+        }
+      });
+    }
+
+    // Brightness Slider
+    const brightRange = document.getElementById('screen-bright-range');
+    const brightDisplay = document.getElementById('brightness-val-display');
+    if (brightRange && brightDisplay) {
+      brightRange.addEventListener('input', (e) => {
+        brightDisplay.innerHTML = `${e.target.value}<span class="text-headline-md font-sans font-medium text-on-surface-variant">%</span>`;
+      });
+    }
+
+    // Night Light Switch
+    const btnNightLight = document.getElementById('toggle-night-light');
+    const nightLightThumb = document.getElementById('night-light-thumb');
+    let nightLightActive = true;
+    if (btnNightLight && nightLightThumb) {
+      btnNightLight.addEventListener('click', () => {
+        nightLightActive = !nightLightActive;
+        if (nightLightActive) {
+          btnNightLight.classList.remove('bg-surface-container-highest');
+          btnNightLight.classList.add('bg-secondary');
+          nightLightThumb.classList.add('translate-x-5');
+          nightLightThumb.classList.remove('translate-x-0.5');
+        } else {
+          btnNightLight.classList.remove('bg-secondary');
+          btnNightLight.classList.add('bg-surface-container-highest');
+          nightLightThumb.classList.remove('translate-x-5');
+          nightLightThumb.classList.add('translate-x-0.5');
+        }
+      });
+    }
+
+    // Media Transport Controls
+    const btnPlayPause = document.getElementById('media-play-pause');
+    const playPauseIcon = document.getElementById('play-pause-icon');
+    let isPlaying = true;
+    if (btnPlayPause && playPauseIcon) {
+      btnPlayPause.addEventListener('click', () => {
+        isPlaying = !isPlaying;
+        playPauseIcon.textContent = isPlaying ? 'pause' : 'play_arrow';
+      });
+    }
+
+    // Screenshot Trigger Simulation
+    const btnScreenshot = document.getElementById('btn-take-screenshot');
+    const screenshotFeedback = document.getElementById('screenshot-feedback');
+    if (btnScreenshot && screenshotFeedback) {
+      btnScreenshot.addEventListener('click', () => {
+        screenshotFeedback.classList.remove('hidden');
+        screenshotFeedback.classList.add('flex');
+        setTimeout(() => {
+          screenshotFeedback.classList.add('hidden');
+          screenshotFeedback.classList.remove('flex');
+        }, 3500);
+      });
+    }
+
+    // Lock PC Simulation
+    const btnLock = document.getElementById('btn-lock-workstation');
+    if (btnLock) {
+      btnLock.addEventListener('click', () => {
+        const originalText = btnLock.innerHTML;
+        btnLock.innerHTML = '<span class="material-symbols-outlined text-[16px] animate-spin">refresh</span><span>Locking...</span>';
+        setTimeout(() => {
+          btnLock.innerHTML = '<span class="material-symbols-outlined text-[16px]">check</span><span>Workstation Locked</span>';
+          setTimeout(() => {
+            btnLock.innerHTML = originalText;
+          }, 2000);
+        }, 800);
+      });
+    }
+
+    // Clipboard Copy & Clear
+    const btnCopyClip = document.getElementById('btn-copy-clip');
+    const btnClearClip = document.getElementById('btn-clear-clip');
+    const clipPreview = document.getElementById('clipboard-preview-text');
+    if (btnCopyClip && clipPreview) {
+      btnCopyClip.addEventListener('click', () => {
+        navigator.clipboard?.writeText(clipPreview.textContent.trim());
+        const original = btnCopyClip.innerHTML;
+        btnCopyClip.innerHTML = '<span class="material-symbols-outlined text-[15px] text-tertiary">check</span><span class="text-tertiary">Copied</span>';
+        setTimeout(() => {
+          btnCopyClip.innerHTML = original;
+        }, 1800);
+      });
+    }
+    if (btnClearClip && clipPreview) {
+      btnClearClip.addEventListener('click', () => {
+        clipPreview.textContent = '[Clipboard Cleared]';
+      });
+    }
+
+    // Process Killer delegation
+    document.querySelectorAll('.btn-kill-proc').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const row = e.target.closest('.flex.items-center.justify-between');
+        if (row) {
+          row.style.opacity = '0.3';
+          row.style.pointerEvents = 'none';
+          btn.textContent = 'Terminated';
+        }
+      });
+    });
+  })();
+</script></main></div></body></html>

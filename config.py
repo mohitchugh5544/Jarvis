@@ -13,9 +13,9 @@ DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
 
 # Voice configuration (Phase 3)
-JARVIS_WHISPER_MODEL = os.getenv("JARVIS_WHISPER_MODEL", "small.en")
+JARVIS_WHISPER_MODEL = os.getenv("JARVIS_WHISPER_MODEL", "base.en")
 JARVIS_WAKE_WORD = os.getenv("JARVIS_WAKE_WORD", "hey_jarvis")
-JARVIS_WAKE_THRESHOLD = float(os.getenv("JARVIS_WAKE_THRESHOLD", "0.25"))
+JARVIS_WAKE_THRESHOLD = float(os.getenv("JARVIS_WAKE_THRESHOLD", "0.50"))
 JARVIS_TTS_RATE = int(os.getenv("JARVIS_TTS_RATE", "180"))
 JARVIS_TTS_VOICE_INDEX = int(os.getenv("JARVIS_TTS_VOICE_INDEX", "0"))
 

@@ -46,9 +46,9 @@ import scheduler
 # Audio stream configuration
 SAMPLE_RATE = 16000  # 16kHz required by openWakeWord and Whisper
 CHUNK_SAMPLES = 1280  # 80ms chunk at 16kHz (openWakeWord standard)
-SILENCE_TIMEOUT_SECONDS = 1.3  # Silence duration to conclude user command
+SILENCE_TIMEOUT_SECONDS = 0.7  # Silence duration to conclude user command
 MAX_RECORDING_SECONDS = 12.0  # Max duration for a single command
-MIN_RECORDING_SECONDS = 0.4  # Ignore accidental triggers under 0.4s
+MIN_RECORDING_SECONDS = 0.35  # Ignore accidental triggers under 0.35s
 PRE_ROLL_CHUNKS = 5  # ~400ms pre-roll to prevent cutting off the first word
 
 # Domain prompt to condition Whisper's language model for assistant queries
@@ -60,21 +60,23 @@ WHISPER_INITIAL_PROMPT = (
 
 
 def play_chime(kind: str = "activate"):
-    """Plays audio cue for state changes (Windows winsound)."""
+    """Plays audio cue asynchronously so it never blocks microphone capture."""
     if winsound is None:
         return
-    try:
-        if kind == "activate":
-            # Rising tone on wake
-            winsound.Beep(900, 100)
-            winsound.Beep(1300, 120)
-        elif kind == "done":
-            # Soft tone on speech capture complete
-            winsound.Beep(750, 90)
-        elif kind == "error":
-            winsound.Beep(400, 150)
-    except Exception:
-        pass
+
+    def _beep():
+        try:
+            if kind == "activate":
+                winsound.Beep(900, 70)
+                winsound.Beep(1300, 80)
+            elif kind == "done":
+                winsound.Beep(750, 65)
+            elif kind == "error":
+                winsound.Beep(400, 120)
+        except Exception:
+            pass
+
+    threading.Thread(target=_beep, daemon=True).start()
 
 
 class VoiceEngine:
@@ -112,13 +114,16 @@ class VoiceAssistant:
 
         print(f"Loading openWakeWord model ('{JARVIS_WAKE_WORD}')...")
         try:
-            openwakeword.utils.download_models()
+            self.oww_model = Model(
+                wakeword_models=[JARVIS_WAKE_WORD],
+                inference_framework="onnx",
+            )
         except Exception:
-            pass
-        self.oww_model = Model(
-            wakeword_models=[JARVIS_WAKE_WORD],
-            inference_framework="onnx",
-        )
+            openwakeword.utils.download_models()
+            self.oww_model = Model(
+                wakeword_models=[JARVIS_WAKE_WORD],
+                inference_framework="onnx",
+            )
 
         self.audio_queue = queue.Queue()
         self.pre_roll_buffer = collections.deque(maxlen=PRE_ROLL_CHUNKS)
@@ -160,9 +165,13 @@ class VoiceAssistant:
         segments, _ = self.whisper_model.transcribe(
             audio_data,
             language="en",
-            beam_size=5,
+            beam_size=1,
+            best_of=1,
+            temperature=0.0,
+            condition_on_previous_text=False,
             initial_prompt=WHISPER_INITIAL_PROMPT,
-            vad_filter=False,  # Already filtered by our recording loop
+            vad_filter=True,
+            vad_parameters=dict(min_silence_duration_ms=300),
         )
         text = " ".join(s.text.strip() for s in segments).strip()
         return text
