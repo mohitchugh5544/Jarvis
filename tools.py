@@ -10,14 +10,17 @@ That's the whole extension pattern for the rest of this project.
 """
 import base64
 import ctypes
+from ctypes import wintypes
 import io
 import json
 import os
 import platform
+import re
 import subprocess
 import webbrowser
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import quote
 
 from PIL import Image
 import dateparser
@@ -471,6 +474,335 @@ def analyze_screen(prompt: str = "Explain what is on the screen.") -> str:
         return response.choices[0].message.content or "No visual details returned."
     except Exception as e:
         return f"Screen vision analysis failed: {e}"
+
+
+# ---- Shared LLM client ---------------------------------------------------
+
+_LLM_CLIENT = None
+
+
+def _llm_client() -> OpenAI:
+    global _LLM_CLIENT
+    if _LLM_CLIENT is None:
+        _LLM_CLIENT = OpenAI(api_key=GOOGLE_API_KEY, base_url=GOOGLE_BASE_URL)
+    return _LLM_CLIENT
+
+
+# ---- Direct Media Playback (YouTube / Spotify) ---------------------------
+
+_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+)
+
+
+def play_media_query(query: str, platform: str = "youtube", browser: str = "") -> str:
+    """Finds the top YouTube video or Spotify track for a query and opens it directly."""
+    q = (query or "").strip()
+    if not q:
+        return "Tell me what to play."
+    plat = (platform or "youtube").strip().lower()
+
+    if "spotify" in plat:
+        track_id, title = None, ""
+        try:
+            for r in DDGS().text(f"site:open.spotify.com/track {q}", max_results=6):
+                m = re.search(r"open\.spotify\.com/(?:intl-[a-z]+/)?track/([A-Za-z0-9]{22})", r.get("href", ""))
+                if m:
+                    track_id = m.group(1)
+                    title = (r.get("title") or "").split("|")[0].replace("- song and lyrics by", "by").strip()
+                    break
+        except Exception:
+            pass
+        if track_id:
+            try:
+                os.startfile(f"spotify:track:{track_id}")
+                return f"Opened '{title or q}' in Spotify."
+            except Exception:
+                webbrowser.open(f"https://open.spotify.com/track/{track_id}")
+                return f"Opened '{title or q}' on Spotify Web."
+        try:
+            os.startfile(f"spotify:search:{quote(q)}")
+            return f"Couldn't pin down an exact track, so I opened Spotify search for '{q}'."
+        except Exception:
+            webbrowser.open(f"https://open.spotify.com/search/{quote(q)}")
+            return f"Opened Spotify Web search for '{q}'."
+
+    # YouTube (default)
+    try:
+        resp = requests.get(
+            "https://www.youtube.com/results",
+            params={"search_query": q},
+            timeout=6,
+            headers={"User-Agent": _UA, "Accept-Language": "en-US,en;q=0.9"},
+        )
+        m = re.search(r'"videoRenderer":\{"videoId":"([A-Za-z0-9_-]{11})"', resp.text) or re.search(
+            r'"videoId":"([A-Za-z0-9_-]{11})"', resp.text
+        )
+        if m:
+            vid = m.group(1)
+            title = ""
+            tm = re.search(r'"title":\{"runs":\[\{"text":"((?:[^"\\]|\\.)*)"', resp.text[m.end(): m.end() + 4000])
+            if tm:
+                try:
+                    title = json.loads(f'"{tm.group(1)}"')
+                except Exception:
+                    title = tm.group(1)
+            url = f"https://www.youtube.com/watch?v={vid}"
+            if browser and browser.strip():
+                open_url(url, browser)
+            else:
+                webbrowser.open(url)
+            return f"Playing '{title or q}' on YouTube."
+    except Exception:
+        pass
+
+    search_url = f"https://www.youtube.com/results?search_query={quote(q)}"
+    if browser and browser.strip():
+        open_url(search_url, browser)
+    else:
+        webbrowser.open(search_url)
+    return f"Opened YouTube search results for '{q}'."
+
+
+# ---- Smart Clipboard Actions ---------------------------------------------
+
+_CLIP_ACTIONS = {
+    "fix_grammar": (
+        "Fix the grammar, spelling and punctuation of the user's text. Keep the original meaning, "
+        "tone and formatting. Return ONLY the corrected text, with no commentary or quotes.",
+        True,
+    ),
+    "translate": (
+        "Translate the user's text into {lang}. Preserve formatting. Return ONLY the translation, "
+        "with no commentary or quotes.",
+        True,
+    ),
+    "explain_code": (
+        "Explain what the user's code does in 2-4 short, plain sentences suitable for being read aloud. "
+        "If there is an obvious bug or risk, mention it in one extra sentence. No markdown.",
+        False,
+    ),
+    "summarize": (
+        "Summarize the user's text in 2-3 short sentences suitable for being read aloud. No markdown.",
+        False,
+    ),
+}
+_CLIP_ALIASES = {
+    "grammar": "fix_grammar", "fix": "fix_grammar", "proofread": "fix_grammar",
+    "explain": "explain_code", "code": "explain_code",
+    "summary": "summarize", "summarise": "summarize",
+}
+
+
+def _strip_code_fences(text: str) -> str:
+    t = text.strip()
+    if t.startswith("```"):
+        lines = t.splitlines()
+        lines = lines[1:]
+        if lines and lines[-1].strip().startswith("```"):
+            lines = lines[:-1]
+        t = "\n".join(lines).strip()
+    return t
+
+
+def run_clipboard_action(action: str, target_language: str = "English") -> dict:
+    """Runs an AI action on the clipboard. Returns {'ok', 'message', 'text'}."""
+    key = (action or "").strip().lower().replace(" ", "_").replace("-", "_")
+    key = _CLIP_ALIASES.get(key, key)
+    if key not in _CLIP_ACTIONS:
+        return {"ok": False, "message": f"Unknown clipboard action '{action}'.", "text": ""}
+    try:
+        src = pyperclip.paste() or ""
+    except Exception as e:
+        return {"ok": False, "message": f"Couldn't read the clipboard: {e}", "text": ""}
+    if not src.strip():
+        return {"ok": False, "message": "Your clipboard is empty. Copy some text first.", "text": ""}
+
+    lang = (target_language or "English").strip() or "English"
+    instruction, write_back = _CLIP_ACTIONS[key]
+    try:
+        resp = _llm_client().chat.completions.create(
+            model=JARVIS_MODEL,
+            messages=[
+                {"role": "system", "content": instruction.format(lang=lang)},
+                {"role": "user", "content": src[:6000]},
+            ],
+        )
+        out = _strip_code_fences(resp.choices[0].message.content or "")
+    except Exception as e:
+        return {"ok": False, "message": f"Clipboard action failed: {e}", "text": ""}
+    if not out:
+        return {"ok": False, "message": "The AI returned an empty result.", "text": ""}
+
+    if write_back:
+        try:
+            pyperclip.copy(out)
+        except Exception as e:
+            return {"ok": True, "message": f"Done, but couldn't write back to clipboard: {e}", "text": out}
+        label = "Fixed grammar" if key == "fix_grammar" else f"Translated to {lang}"
+        preview = out if len(out) <= 160 else out[:160] + "..."
+        return {"ok": True, "message": f"{label} and copied it back to your clipboard: {preview}", "text": out}
+    return {"ok": True, "message": out, "text": out}
+
+
+def clipboard_action(action: str, target_language: str = "English") -> str:
+    """Tool wrapper: fix_grammar / translate / explain_code / summarize the clipboard."""
+    return run_clipboard_action(action, target_language)["message"]
+
+
+# ---- Screenshot bytes for remote viewers ----------------------------------
+
+def capture_screen_jpeg(save_copy: bool = False, max_width: int = 1920, quality: int = 82) -> tuple[bytes, str]:
+    """Captures the screen as JPEG bytes. Optionally also saves a PNG to Pictures. Returns (bytes, saved_name)."""
+    img = _capture_screen_image()
+    saved_name = ""
+    if save_copy:
+        try:
+            pic_dir = _get_user_folder("Pictures")
+            saved_name = f"screenshot_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+            img.save(pic_dir / saved_name)
+        except Exception:
+            saved_name = ""
+    if img.width > max_width:
+        img.thumbnail((max_width, max_width * 2))
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=quality)
+    return buf.getvalue(), saved_name
+
+
+# ---- Remote mouse & keyboard input (used by the iPhone trackpad) ----------
+# NOT exposed to the LLM — only reachable through the authenticated bridge API.
+
+class _MOUSEINPUT(ctypes.Structure):
+    _fields_ = [
+        ("dx", wintypes.LONG), ("dy", wintypes.LONG), ("mouseData", wintypes.DWORD),
+        ("dwFlags", wintypes.DWORD), ("time", wintypes.DWORD), ("dwExtraInfo", ctypes.c_size_t),
+    ]
+
+
+class _KEYBDINPUT(ctypes.Structure):
+    _fields_ = [
+        ("wVk", wintypes.WORD), ("wScan", wintypes.WORD), ("dwFlags", wintypes.DWORD),
+        ("time", wintypes.DWORD), ("dwExtraInfo", ctypes.c_size_t),
+    ]
+
+
+class _HARDWAREINPUT(ctypes.Structure):
+    _fields_ = [("uMsg", wintypes.DWORD), ("wParamL", wintypes.WORD), ("wParamH", wintypes.WORD)]
+
+
+class _INPUT_UNION(ctypes.Union):
+    _fields_ = [("mi", _MOUSEINPUT), ("ki", _KEYBDINPUT), ("hi", _HARDWAREINPUT)]
+
+
+class _INPUT(ctypes.Structure):
+    _fields_ = [("type", wintypes.DWORD), ("u", _INPUT_UNION)]
+
+
+_INPUT_MOUSE, _INPUT_KEYBOARD = 0, 1
+_KEYEVENTF_EXTENDEDKEY, _KEYEVENTF_KEYUP, _KEYEVENTF_UNICODE = 0x0001, 0x0002, 0x0004
+_MOUSEEVENTF_MOVE, _MOUSEEVENTF_LEFTDOWN, _MOUSEEVENTF_LEFTUP = 0x0001, 0x0002, 0x0004
+_MOUSEEVENTF_RIGHTDOWN, _MOUSEEVENTF_RIGHTUP, _MOUSEEVENTF_WHEEL = 0x0008, 0x0010, 0x0800
+
+_VK_MAP = {
+    "enter": 0x0D, "return": 0x0D, "backspace": 0x08, "tab": 0x09, "esc": 0x1B, "escape": 0x1B,
+    "space": 0x20, "left": 0x25, "up": 0x26, "right": 0x27, "down": 0x28, "delete": 0x2E, "del": 0x2E,
+    "home": 0x24, "end": 0x23, "pageup": 0x21, "pagedown": 0x22, "win": 0x5B, "windows": 0x5B,
+    "ctrl": 0x11, "control": 0x11, "alt": 0x12, "shift": 0x10,
+}
+_EXTENDED_VKS = {0x25, 0x26, 0x27, 0x28, 0x2E, 0x24, 0x23, 0x21, 0x22, 0x5B}
+
+
+def _send_inputs(inputs: list) -> int:
+    n = len(inputs)
+    if not n:
+        return 0
+    arr = (_INPUT * n)(*inputs)
+    return ctypes.windll.user32.SendInput(n, arr, ctypes.sizeof(_INPUT))
+
+
+def _mouse_input(flags: int, dx: int = 0, dy: int = 0, data: int = 0) -> _INPUT:
+    mi = _MOUSEINPUT(dx=dx, dy=dy, mouseData=data & 0xFFFFFFFF, dwFlags=flags, time=0, dwExtraInfo=0)
+    return _INPUT(type=_INPUT_MOUSE, u=_INPUT_UNION(mi=mi))
+
+
+def _key_input(vk: int = 0, scan: int = 0, flags: int = 0) -> _INPUT:
+    ki = _KEYBDINPUT(wVk=vk, wScan=scan, dwFlags=flags, time=0, dwExtraInfo=0)
+    return _INPUT(type=_INPUT_KEYBOARD, u=_INPUT_UNION(ki=ki))
+
+
+def remote_mouse(action: str, dx: int = 0, dy: int = 0) -> str:
+    """move (relative dx/dy) | click | right_click | double_click | scroll (dy = wheel delta, + is up)."""
+    act = (action or "move").strip().lower()
+    try:
+        if act == "move":
+            dx = max(-800, min(800, int(dx)))
+            dy = max(-800, min(800, int(dy)))
+            _send_inputs([_mouse_input(_MOUSEEVENTF_MOVE, dx, dy)])
+        elif act in ("click", "left_click"):
+            _send_inputs([_mouse_input(_MOUSEEVENTF_LEFTDOWN), _mouse_input(_MOUSEEVENTF_LEFTUP)])
+        elif act == "double_click":
+            _send_inputs([
+                _mouse_input(_MOUSEEVENTF_LEFTDOWN), _mouse_input(_MOUSEEVENTF_LEFTUP),
+                _mouse_input(_MOUSEEVENTF_LEFTDOWN), _mouse_input(_MOUSEEVENTF_LEFTUP),
+            ])
+        elif act == "right_click":
+            _send_inputs([_mouse_input(_MOUSEEVENTF_RIGHTDOWN), _mouse_input(_MOUSEEVENTF_RIGHTUP)])
+        elif act == "scroll":
+            delta = max(-2400, min(2400, int(dy)))
+            _send_inputs([_mouse_input(_MOUSEEVENTF_WHEEL, data=delta)])
+        else:
+            return f"Unknown mouse action '{action}'."
+        return "ok"
+    except Exception as e:
+        return f"Mouse input failed: {e}"
+
+
+def _vk_for(name: str):
+    n = name.strip().lower()
+    if n in _VK_MAP:
+        return _VK_MAP[n]
+    if n.startswith("f") and n[1:].isdigit() and 1 <= int(n[1:]) <= 12:
+        return 0x6F + int(n[1:])
+    if len(n) == 1 and n.isalnum():
+        return ord(n.upper())
+    return None
+
+
+def remote_press_keys(combo: str) -> str:
+    """Presses a key or combo such as 'enter', 'alt+tab', 'ctrl+c', 'win+d'."""
+    parts = [p for p in (combo or "").replace(" ", "").split("+") if p]
+    vks = [_vk_for(p) for p in parts]
+    if not parts or any(v is None for v in vks):
+        return f"Unknown key '{combo}'."
+    downs = [_key_input(v, flags=_KEYEVENTF_EXTENDEDKEY if v in _EXTENDED_VKS else 0) for v in vks]
+    ups = [
+        _key_input(v, flags=_KEYEVENTF_KEYUP | (_KEYEVENTF_EXTENDEDKEY if v in _EXTENDED_VKS else 0))
+        for v in reversed(vks)
+    ]
+    _send_inputs(downs + ups)
+    return f"Pressed {combo}."
+
+
+def remote_type_text(text: str) -> str:
+    """Types arbitrary Unicode text into the focused PC window."""
+    inputs = []
+    for ch in text or "":
+        if ch == "\r":
+            continue
+        if ch == "\n":
+            inputs += [_key_input(0x0D), _key_input(0x0D, flags=_KEYEVENTF_KEYUP)]
+            continue
+        raw = ch.encode("utf-16-le")
+        for i in range(0, len(raw), 2):
+            unit = int.from_bytes(raw[i:i + 2], "little")
+            inputs += [
+                _key_input(0, unit, _KEYEVENTF_UNICODE),
+                _key_input(0, unit, _KEYEVENTF_UNICODE | _KEYEVENTF_KEYUP),
+            ]
+    _send_inputs(inputs)
+    return f"Typed {len(text or '')} characters."
 
 
 # ---- Notes / reminders --------------------------------------------------
@@ -1406,6 +1738,38 @@ TOOL_DEFINITIONS = [
         },
     },
     {
+        "name": "play_media_query",
+        "description": (
+            "Directly play a specific song, video, artist, podcast or playlist. Finds the top YouTube video "
+            "(default) or Spotify track and opens it. Use this instead of open_url whenever the user says "
+            "'play ...' (e.g. 'play lofi hip hop on YouTube', 'play Blinding Lights on Spotify')."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "description": "What to play, e.g. 'Blinding Lights The Weeknd'"},
+                "platform": {"type": "string", "enum": ["youtube", "spotify"], "description": "Default youtube"},
+                "browser": {"type": "string", "description": "Optional browser for YouTube (respect the user's preferred browser memory)"},
+            },
+            "required": ["query"],
+        },
+    },
+    {
+        "name": "clipboard_action",
+        "description": (
+            "Run an AI action on the text currently copied to the Windows clipboard: 'fix_grammar' and "
+            "'translate' write the result back to the clipboard; 'explain_code' and 'summarize' return an explanation."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "action": {"type": "string", "enum": ["fix_grammar", "translate", "explain_code", "summarize"]},
+                "target_language": {"type": "string", "description": "Target language for translate (default English)"},
+            },
+            "required": ["action"],
+        },
+    },
+    {
         "name": "clear_memory",
         "description": "Clear short-term conversation history from active context (keeps learned long-term memories).",
         "input_schema": {"type": "object", "properties": {}, "required": []},
@@ -1454,4 +1818,6 @@ TOOL_FUNCTIONS = {
     "forget_memory": lambda **kw: forget_memory(**kw),
     "search_chat_history": lambda **kw: search_chat_history(**kw),
     "clear_memory": lambda **kw: clear_memory(**kw),
+    "play_media_query": lambda **kw: play_media_query(**kw),
+    "clipboard_action": lambda **kw: clipboard_action(**kw),
 }

@@ -487,27 +487,33 @@ class GuiVoiceThread(QThread):
 
 
 class HotkeyThread(QThread):
-    """Listens for global Ctrl+Alt+J via Win32 RegisterHotKey."""
+    """Listens for global Ctrl+Alt+J (toggle) and Ctrl+Alt+Space (push-to-talk) via Win32 RegisterHotKey."""
     pressed = pyqtSignal()
+    ptt_pressed = pyqtSignal()
 
     MOD_ALT = 0x0001
     MOD_CONTROL = 0x0002
     VK_J = 0x4A
+    VK_SPACE = 0x20
     WM_HOTKEY = 0x0312
 
     def run(self):
         user32 = ctypes.windll.user32
-        if not user32.RegisterHotKey(None, 1, self.MOD_CONTROL | self.MOD_ALT, self.VK_J):
-            return
+        user32.RegisterHotKey(None, 1, self.MOD_CONTROL | self.MOD_ALT, self.VK_J)
+        user32.RegisterHotKey(None, 2, self.MOD_CONTROL | self.MOD_ALT, self.VK_SPACE)
         try:
             msg = wintypes.MSG()
             while user32.GetMessageW(ctypes.byref(msg), None, 0, 0) != 0:
                 if msg.message == self.WM_HOTKEY:
-                    self.pressed.emit()
+                    if msg.wParam == 1:
+                        self.pressed.emit()
+                    elif msg.wParam == 2:
+                        self.ptt_pressed.emit()
                 user32.TranslateMessage(ctypes.byref(msg))
                 user32.DispatchMessageW(ctypes.byref(msg))
         finally:
             user32.UnregisterHotKey(None, 1)
+            user32.UnregisterHotKey(None, 2)
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -654,6 +660,7 @@ class JarvisStitchApp(QObject):
 
         self._hotkey = HotkeyThread()
         self._hotkey.pressed.connect(self._toggle_visibility)
+        self._hotkey.ptt_pressed.connect(self._on_ptt_pressed)
         self._hotkey.start()
 
         if start_in_widget_mode:
@@ -785,6 +792,13 @@ class JarvisStitchApp(QObject):
             self._widget_win.show()
             self._widget_win.raise_()
             self._widget_win.activateWindow()
+
+    def _on_ptt_pressed(self):
+        """Global push-to-talk hotkey (Ctrl+Alt+Space): triggers one-shot listening from anywhere."""
+        if not self._widget_win.isVisible() and not self._hub_win.isVisible():
+            self._widget_win.show()
+            self._widget_win.raise_()
+        self._voice.trigger_push_to_talk()
 
     def _setup_tray(self):
         pix = QPixmap(32, 32)

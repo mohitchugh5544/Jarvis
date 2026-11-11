@@ -76,6 +76,8 @@ DIRECT_RETURN_TOOLS = {
     "clear_memory",
     "set_clipboard_text",
     "analyze_screen",
+    "play_media_query",
+    "clipboard_action",
 }
 
 # Convert our tool schemas (name, description, input_schema) into the

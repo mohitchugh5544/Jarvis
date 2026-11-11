@@ -18,8 +18,9 @@ import re
 import socket
 import threading
 import time
+import webbrowser
 from datetime import datetime
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 import psutil
 import pyperclip
@@ -75,8 +76,33 @@ def build_widget_html() -> str:
     raw = raw.replace("</head>", anti_flicker_widget_css + "</head>")
     raw = raw.replace(
         '<body class="bg-surface font-body-md text-on-surface antialiased"><main class="w-full min-h-screen flex items-center justify-center p-space-md bg-surface"><div class="flex flex-col w-full items-center justify-center py-6 px-4 select-none relative overflow-hidden">',
-        '<body class="bg-[#0d0e11] font-body-md text-on-surface antialiased overflow-hidden select-none m-0 p-0"><main class="w-full bg-[#0d0e11] m-0 p-0"><div class="flex flex-col w-full select-none relative overflow-hidden m-0 p-0">',
+        '<body class="bg-[#0d0e11] font-body-md text-on-surface antialiased overflow-y-auto overflow-x-hidden select-none m-0 p-0"><main class="w-full bg-[#0d0e11] m-0 p-0"><div class="flex flex-col w-full select-none relative overflow-hidden m-0 p-0">',
     )
+    # Tighten the orb section so the new command bar fits without a taller window
+    raw = raw.replace(
+        '<div class="relative z-10 my-1 py-4 flex flex-col items-center justify-center">',
+        '<div class="relative z-10 py-1 flex flex-col items-center justify-center">',
+    )
+    # Quick Command bar + Smart Clipboard chips + inline reply (kept visible when collapsed)
+    command_bar_html = """
+<div id="widgetCmdBar" data-keep="1" class="relative z-10 flex flex-col gap-2">
+<form id="widgetCmdForm" class="flex items-center gap-1.5 rounded-2xl bg-surface-container-low/90 p-1.5 pl-3 border border-white/5 focus-within:border-primary/40 transition-colors">
+<span class="material-symbols-outlined text-[17px] text-primary">keyboard</span>
+<input id="widgetCmdInput" type="text" autocomplete="off" spellcheck="false" placeholder="Ask or command Jarvis..." class="flex-1 min-w-0 bg-transparent text-body-sm text-on-surface placeholder:text-outline outline-none border-0 py-1.5 select-text"/>
+<button type="submit" class="w-8 h-8 rounded-xl bg-primary text-on-primary flex items-center justify-center active:scale-95 transition-all" title="Send (Enter)">
+<span class="material-symbols-outlined text-[17px]">arrow_upward</span>
+</button>
+</form>
+<div class="flex items-center gap-1.5 flex-wrap">
+<span class="text-caption font-caption text-on-surface-variant mr-0.5">Clipboard:</span>
+<button type="button" data-clip-action="fix_grammar" class="px-2 py-1 rounded-full bg-surface-container-high/70 hover:bg-primary/20 hover:text-primary text-caption font-caption text-on-surface transition-colors">Fix Grammar</button>
+<button type="button" data-clip-action="translate" class="px-2 py-1 rounded-full bg-surface-container-high/70 hover:bg-primary/20 hover:text-primary text-caption font-caption text-on-surface transition-colors">Translate</button>
+<button type="button" data-clip-action="explain_code" class="px-2 py-1 rounded-full bg-surface-container-high/70 hover:bg-primary/20 hover:text-primary text-caption font-caption text-on-surface transition-colors">Explain Code</button>
+</div>
+<div id="widgetReplyBox" class="hidden rounded-xl bg-surface-container-high/90 p-3 text-on-surface border border-primary/25 flex-col gap-1.5"></div>
+</div>
+<!-- ACOUSTIC ORB CORE (Interactive AI Centerpiece) -->"""
+    raw = raw.replace("<!-- ACOUSTIC ORB CORE (Interactive AI Centerpiece) -->", command_bar_html, 1)
     # Remove outer ambient glow layers so there is no outer box around the card
     raw = re.sub(
         r"<!-- Ambient Spatial Glows Behind Widget.*?<!-- FLOATING MINI HUD WINDOW CONTAINER",
@@ -281,7 +307,7 @@ WIDGET_JS = r"""
     });
   }
 
-  // Collapse to Pill toggle
+  // Collapse to Pill toggle (keeps the quick command bar visible)
   let isCollapsed = false;
   if (collapseBtn) {
     collapseBtn.addEventListener('click', () => {
@@ -290,12 +316,72 @@ WIDGET_JS = r"""
       if (widgetCard) {
         const cardChildren = widgetCard.children;
         for (let i = 3; i < cardChildren.length; i++) {
+          if (cardChildren[i].dataset && cardChildren[i].dataset.keep === '1') continue;
           cardChildren[i].style.display = isCollapsed ? 'none' : '';
         }
       }
       requestAnimationFrame(syncWidgetSize);
     });
   }
+
+  // ---- Quick Command bar + Smart Clipboard chips ----
+  function esc(s) {
+    return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  const cmdForm = document.getElementById('widgetCmdForm');
+  const cmdInput = document.getElementById('widgetCmdInput');
+  const replyBox = document.getElementById('widgetReplyBox');
+  let cmdBusy = false;
+
+  function showWidgetReply(label, text, busy) {
+    if (!replyBox) return;
+    replyBox.classList.remove('hidden');
+    replyBox.classList.add('flex');
+    replyBox.innerHTML = `
+      <div class="flex items-center justify-between">
+        <span class="text-caption font-caption text-primary font-semibold uppercase tracking-wider">${esc(label)}</span>
+        <button type="button" id="widgetReplyClose" class="text-on-surface-variant hover:text-on-surface text-caption px-1">✕</button>
+      </div>
+      <div class="text-body-sm leading-relaxed max-h-32 overflow-y-auto whitespace-pre-wrap select-text ${busy ? 'text-on-surface-variant animate-pulse' : ''}">${esc(text)}</div>`;
+    const c = document.getElementById('widgetReplyClose');
+    if (c) c.onclick = () => {
+      replyBox.classList.add('hidden');
+      replyBox.classList.remove('flex');
+      replyBox.innerHTML = '';
+      requestAnimationFrame(syncWidgetSize);
+    };
+    requestAnimationFrame(syncWidgetSize);
+  }
+
+  if (cmdForm && cmdInput) {
+    cmdForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const t = cmdInput.value.trim();
+      if (!t || cmdBusy) return;
+      cmdBusy = true;
+      cmdInput.value = '';
+      showWidgetReply('Jarvis is thinking…', t, true);
+      const r = await api('/api/chat/ask', { text: t });
+      showWidgetReply('Jarvis', (r && r.reply) || 'No response — check the connection.', false);
+      cmdBusy = false;
+      cmdInput.focus();
+    });
+    cmdInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { cmdInput.value = ''; cmdInput.blur(); }
+    });
+  }
+
+  document.querySelectorAll('[data-clip-action]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (cmdBusy) return;
+      cmdBusy = true;
+      const label = 'Clipboard · ' + btn.textContent.trim();
+      showWidgetReply(label, 'Working on your copied text…', true);
+      const r = await api('/api/clipboard/action', { action: btn.dataset.clipAction });
+      showWidgetReply(label, (r && (r.message || r.result)) || 'Failed.', false);
+      cmdBusy = false;
+    });
+  });
 
   // Hide Popup button (Ctrl+Alt+J restores it)
   if (hideWidgetBtn) {
@@ -388,7 +474,8 @@ WIDGET_JS = r"""
           box = document.createElement('div');
           box.id = 'widgetVisionResult';
           box.className = 'relative z-10 rounded-xl bg-surface-container-high/90 p-3 text-body-sm text-on-surface border border-primary/25 flex flex-col gap-1.5';
-          widgetCard.insertBefore(box, widgetCard.children[3]);
+          const anchor = document.getElementById('widgetCmdBar');
+          if (anchor) anchor.after(box); else widgetCard.insertBefore(box, widgetCard.children[3]);
         }
         if (box) {
           box.style.display = '';
@@ -478,7 +565,7 @@ WIDGET_JS = r"""
         const wakeText = wakeOn ? 'Voice ON ("Hey Jarvis")' : 'Voice OFF (Tap Orb to Speak)';
         const dotCls = wakeOn ? 'bg-tertiary' : 'bg-outline';
         orbStatus.innerHTML = `<span>${wakeText}</span><span class="w-1.5 h-1.5 rounded-full ${dotCls}"></span>`;
-        orbSubtext.textContent = data.last_reply_preview || (wakeOn ? 'Listening for "Hey Jarvis"...' : 'Continuous mic off • Click "Voice: OFF" below to enable');
+        orbSubtext.textContent = data.last_reply_preview || (wakeOn ? 'Listening for "Hey Jarvis"...' : 'Tap orb or press Ctrl+Alt+Space to speak once');
         orbBtn.classList.remove('shadow-[0_0_48px_rgba(83,225,111,0.6)]');
         orbWave.classList.remove('text-tertiary', 'text-secondary');
         orbWave.classList.add('text-primary');
@@ -1901,7 +1988,7 @@ MOBILE_HTML = r"""<!DOCTYPE html>
       background: rgba(15, 17, 23, 0.94);
       backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
       border-top: 1px solid var(--border);
-      display: grid; grid-template-columns: repeat(4, 1fr);
+      display: grid; grid-template-columns: repeat(5, 1fr);
       padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 10px));
     }
     .tab-btn {
@@ -1920,10 +2007,69 @@ MOBILE_HTML = r"""<!DOCTYPE html>
       box-shadow: 0 8px 24px rgba(0,0,0,0.45);
     }
     #mToast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    /* Secondary buttons & clipboard */
+    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+    .btn-sec {
+      background: var(--card-hi); color: var(--text);
+      border: 1px solid var(--border); border-radius: 14px;
+      padding: 12px 10px; font-size: 13px; font-weight: 700; cursor: pointer; width: 100%;
+    }
+    .btn-sec:active { transform: scale(0.97); background: #282c3a; }
+    .clip-area {
+      width: 100%; min-height: 92px; margin-top: 10px; resize: vertical;
+      background: var(--card-hi); color: var(--text);
+      border: 1px solid var(--border); border-radius: 14px;
+      padding: 12px; font-size: 14px; font-family: inherit; outline: none;
+    }
+    .clip-area:focus { border-color: var(--primary); }
+    /* Trackpad */
+    .trackpad {
+      height: 46vh; min-height: 260px; border-radius: 22px;
+      background: radial-gradient(circle at 50% 40%, #1d2130 0%, #12141b 70%);
+      border: 1px solid rgba(91,155,255,0.22);
+      touch-action: none; -webkit-user-select: none; user-select: none;
+      display: flex; align-items: center; justify-content: center; text-align: center;
+      color: var(--muted); font-size: 12px; line-height: 1.6; position: relative;
+      transition: background 0.12s ease;
+    }
+    .trackpad.tap { background: radial-gradient(circle at 50% 40%, #2a3350 0%, #151824 70%); }
+    .pad-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 10px; }
+    .key-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+    .key-btn {
+      background: var(--card-hi); color: var(--text);
+      border: 1px solid var(--border); border-radius: 12px;
+      padding: 11px 4px; font-size: 13px; font-weight: 700; cursor: pointer;
+    }
+    .key-btn:active { background: var(--primary); color: #001d4a; }
+    .sens-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-size: 12px; color: var(--muted); }
+    /* Screenshot viewer */
+    .shot-modal {
+      position: fixed; inset: 0; z-index: 200; background: #000;
+      display: none; flex-direction: column;
+      padding-top: env(safe-area-inset-top, 0px);
+    }
+    .shot-modal.open { display: flex; }
+    .shot-hdr {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      padding: 10px 14px; font-size: 12px; color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .shot-body { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; }
+    #shotImg { width: 100%; display: block; -webkit-touch-callout: default; }
+    #shotImg.zoomed { width: 260%; max-width: none; }
   </style>
 </head>
 <body>
   <div id="mToast">Done</div>
+
+  <!-- Full-screen PC Screenshot Viewer -->
+  <div id="shotModal" class="shot-modal">
+    <div class="shot-hdr">
+      <span>Tap to zoom · Long-press image → Save to Photos</span>
+      <button class="btn-sm" onclick="closeShot()">Close</button>
+    </div>
+    <div class="shot-body"><img id="shotImg" alt="PC screenshot" onclick="this.classList.toggle('zoomed')" /></div>
+  </div>
 
   <!-- Sticky Top Header -->
   <header class="top-bar">
@@ -2024,6 +2170,82 @@ MOBILE_HTML = r"""<!DOCTYPE html>
         <button class="chip" onclick="openFolderMobile('Desktop')">Desktop</button>
       </div>
     </div>
+
+    <div class="card">
+      <div class="card-title"><span>Clipboard &amp; Link Handoff</span></div>
+      <button class="btn-sec" onclick="getPcClipboard()">📋 Grab PC Clipboard</button>
+      <textarea id="clipArea" class="clip-area" placeholder="PC clipboard appears here. Or paste text here to send it to your PC."></textarea>
+      <div class="btn-row">
+        <button class="btn-sec" onclick="copyClipArea()">Copy to iPhone</button>
+        <button class="btn-sec" onclick="sendClipToPc()">Send to PC Clipboard</button>
+      </div>
+      <form id="urlForm" class="cmd-form" style="margin-top:12px;">
+        <input id="urlInput" class="cmd-input" type="url" inputmode="url" autocapitalize="off" autocorrect="off" placeholder="Paste a link to open on PC…" />
+        <button type="submit" class="btn-primary">Open</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span>Smart Clipboard (PC)</span></div>
+      <div class="chip-row">
+        <button class="chip" onclick="clipActionMobile('fix_grammar')">✍️ Fix Grammar</button>
+        <button class="chip" onclick="clipActionMobile('translate')">🌐 Translate</button>
+        <button class="chip" onclick="clipActionMobile('explain_code')">💡 Explain Code</button>
+        <button class="chip" onclick="clipActionMobile('summarize')">📝 Summarize</button>
+      </div>
+      <input id="translateLang" class="cmd-input" style="margin-top:10px;width:100%;" placeholder="Translate to… (default: English)" />
+    </div>
+  </section>
+
+  <!-- TAB: TRACKPAD & REMOTE KEYBOARD -->
+  <section id="view-trackpad" class="view">
+    <div class="card" style="padding:12px;">
+      <div id="trackpad" class="trackpad">
+        <div>
+          <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px;">Trackpad</div>
+          1 finger: move · tap: left click<br/>
+          2 fingers: scroll · 2-finger tap: right click
+        </div>
+      </div>
+      <div class="pad-btns">
+        <button class="btn-sec" onclick="mouseAct('click')">Left</button>
+        <button class="btn-sec" onclick="mouseAct('double_click')">Double</button>
+        <button class="btn-sec" onclick="mouseAct('right_click')">Right</button>
+      </div>
+      <div class="sens-row">
+        <span>Speed</span>
+        <input id="padSens" type="range" min="0.8" max="4" step="0.2" value="2" style="flex:1;" />
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span>Type on PC</span></div>
+      <form id="kbForm" class="cmd-form">
+        <input id="kbInput" class="cmd-input" type="text" autocomplete="off" placeholder="Text to type into the active PC window…" />
+        <button type="submit" class="btn-primary">Type</button>
+      </form>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:var(--muted);">
+        <input id="kbEnter" type="checkbox" /> Press Enter after typing
+      </label>
+      <div class="key-grid">
+        <button class="key-btn" onclick="keyAct('esc')">Esc</button>
+        <button class="key-btn" onclick="keyAct('tab')">Tab</button>
+        <button class="key-btn" onclick="keyAct('backspace')">⌫</button>
+        <button class="key-btn" onclick="keyAct('enter')">Enter</button>
+        <button class="key-btn" onclick="keyAct('left')">←</button>
+        <button class="key-btn" onclick="keyAct('up')">↑</button>
+        <button class="key-btn" onclick="keyAct('down')">↓</button>
+        <button class="key-btn" onclick="keyAct('right')">→</button>
+        <button class="key-btn" onclick="keyAct('space')">Space</button>
+        <button class="key-btn" onclick="keyAct('alt+tab')">Alt+Tab</button>
+        <button class="key-btn" onclick="keyAct('ctrl+c')">Copy</button>
+        <button class="key-btn" onclick="keyAct('ctrl+v')">Paste</button>
+        <button class="key-btn" onclick="keyAct('ctrl+z')">Undo</button>
+        <button class="key-btn" onclick="keyAct('win+d')">Desktop</button>
+        <button class="key-btn" onclick="keyAct('f5')">F5</button>
+        <button class="key-btn" onclick="keyAct('alt+f4')">Alt+F4</button>
+      </div>
+    </div>
   </section>
 
   <!-- TAB 2: CHAT -->
@@ -2084,6 +2306,9 @@ MOBILE_HTML = r"""<!DOCTYPE html>
   <nav class="tab-bar">
     <button class="tab-btn active" onclick="switchMobileTab('remote', this)">
       <span class="t-ico">🎛️</span><span>Remote</span>
+    </button>
+    <button class="tab-btn" onclick="switchMobileTab('trackpad', this)">
+      <span class="t-ico">🖱️</span><span>Trackpad</span>
     </button>
     <button class="tab-btn" onclick="switchMobileTab('chat', this)">
       <span class="t-ico">💬</span><span>Chat</span>
@@ -2216,9 +2441,194 @@ MOBILE_HTML = r"""<!DOCTYPE html>
     }
 
     async function takeScreenshotMobile() {
+      toast('Capturing PC screen...');
+      const modal = document.getElementById('shotModal');
+      const img = document.getElementById('shotImg');
+      if (modal && img) {
+        img.src = '/api/system/screenshot_image?save=1&t=' + Date.now();
+        modal.classList.add('open');
+      }
       const r = await api('/api/system/screenshot', {});
-      toast((r && r.result) || 'Screenshot saved on PC');
-      if (r && r.result) document.getElementById('replyText').textContent = r.result;
+      if (r && r.result) {
+        toast('Captured & saved');
+      }
+    }
+
+    function closeShot() {
+      const modal = document.getElementById('shotModal');
+      if (modal) modal.classList.remove('open');
+      const img = document.getElementById('shotImg');
+      if (img) img.classList.remove('zoomed');
+    }
+
+    async function mouseAct(action) {
+      await api('/api/remote/mouse', { action: action });
+      if (navigator.vibrate) navigator.vibrate(15);
+    }
+
+    async function keyAct(keys) {
+      await api('/api/remote/keyboard', { key: keys });
+      toast('Sent: ' + keys);
+      if (navigator.vibrate) navigator.vibrate(15);
+    }
+
+    document.getElementById('kbForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const inp = document.getElementById('kbInput');
+      const txt = inp.value;
+      if (!txt) return;
+      const enter = document.getElementById('kbEnter').checked;
+      await api('/api/remote/keyboard', { text: txt });
+      if (enter) {
+        await api('/api/remote/keyboard', { key: 'enter' });
+      }
+      inp.value = '';
+      inp.blur();
+      toast('Typed into active PC window');
+    });
+
+    (function initTrackpad() {
+      const pad = document.getElementById('trackpad');
+      if (!pad) return;
+      let startX = 0, startY = 0, lastX = 0, lastY = 0;
+      let startTime = 0, touchCount = 0;
+      let accDx = 0, accDy = 0;
+      let sending = false;
+
+      function getSens() {
+        const el = document.getElementById('padSens');
+        return el ? parseFloat(el.value) || 2.0 : 2.0;
+      }
+
+      async function flushMove() {
+        if (accDx === 0 && accDy === 0) {
+          sending = false;
+          return;
+        }
+        const dx = accDx;
+        const dy = accDy;
+        accDx = 0;
+        accDy = 0;
+        await api('/api/remote/mouse', { action: 'move', dx: Math.round(dx), dy: Math.round(dy) });
+        if (accDx !== 0 || accDy !== 0) {
+          setTimeout(flushMove, 16);
+        } else {
+          sending = false;
+        }
+      }
+
+      pad.addEventListener('touchstart', e => {
+        touchCount = e.touches.length;
+        if (touchCount >= 1) {
+          startX = e.touches[0].clientX;
+          startY = e.touches[0].clientY;
+          lastX = startX;
+          lastY = startY;
+          startTime = Date.now();
+        }
+        if (touchCount === 2) {
+          lastY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        }
+      }, { passive: true });
+
+      pad.addEventListener('touchmove', e => {
+        const sens = getSens();
+        if (e.touches.length === 1 && touchCount === 1) {
+          const cx = e.touches[0].clientX;
+          const cy = e.touches[0].clientY;
+          const dx = (cx - lastX) * sens;
+          const dy = (cy - lastY) * sens;
+          lastX = cx;
+          lastY = cy;
+          accDx += dx;
+          accDy += dy;
+          if (!sending) {
+            sending = true;
+            flushMove();
+          }
+        } else if (e.touches.length === 2) {
+          const avgY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+          const dy = (avgY - lastY) * sens * 1.5;
+          lastY = avgY;
+          if (Math.abs(dy) > 2) {
+            api('/api/remote/mouse', { action: 'scroll', dy: Math.round(dy) });
+          }
+        }
+      }, { passive: true });
+
+      pad.addEventListener('touchend', e => {
+        const elapsed = Date.now() - startTime;
+        pad.classList.add('tap');
+        setTimeout(() => pad.classList.remove('tap'), 120);
+
+        if (touchCount === 1 && elapsed < 280) {
+          const dist = Math.hypot(lastX - startX, lastY - startY);
+          if (dist < 10) {
+            mouseAct('click');
+          }
+        } else if (touchCount === 2 && elapsed < 320) {
+          mouseAct('right_click');
+        }
+        touchCount = e.touches.length;
+      }, { passive: true });
+    })();
+
+    async function getPcClipboard() {
+      toast('Reading PC clipboard...');
+      const d = await api('/api/system/clipboard_get');
+      const area = document.getElementById('clipArea');
+      if (d && d.text !== undefined && area) {
+        area.value = d.text;
+        toast(d.text ? 'Grabbed ' + d.text.length + ' chars from PC' : 'PC clipboard is empty');
+      }
+    }
+
+    async function sendClipToPc() {
+      const area = document.getElementById('clipArea');
+      const val = area ? area.value : '';
+      if (!val) {
+        toast('Clipboard box is empty');
+        return;
+      }
+      await api('/api/system/clipboard', { text: val });
+      toast('Copied to PC clipboard');
+    }
+
+    async function copyClipArea() {
+      const area = document.getElementById('clipArea');
+      const val = area ? area.value : '';
+      if (!val) return;
+      try {
+        await navigator.clipboard.writeText(val);
+        toast('Copied to iPhone clipboard');
+      } catch (e) {
+        area.select();
+        document.execCommand('copy');
+        toast('Copied to iPhone clipboard');
+      }
+    }
+
+    document.getElementById('urlForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const inp = document.getElementById('urlInput');
+      const u = (inp.value || '').trim();
+      if (!u) return;
+      toast('Opening on PC...');
+      const r = await api('/api/system/open_url', { url: u });
+      toast((r && r.result) || 'Opened link on PC');
+      inp.value = '';
+      inp.blur();
+    });
+
+    async function clipActionMobile(action) {
+      toast('Running ' + action.replace('_', ' ') + '...');
+      const lang = (document.getElementById('translateLang').value || '').trim();
+      const r = await api('/api/clipboard/action', { action, language: lang });
+      if (r && r.message) {
+        toast(r.message.slice(0, 45));
+        const area = document.getElementById('clipArea');
+        if (area && r.updated_text) area.value = r.updated_text;
+      }
     }
 
     async function standbyMobile() {
@@ -2507,8 +2917,8 @@ class StitchBridgeController:
 
         threading.Thread(target=_worker, daemon=True).start()
 
-    def run_command_sync(self, text: str) -> str:
-        """Executes a command synchronously (used by iPhone /command endpoint) while syncing UI state."""
+    def run_command_sync(self, text: str, speak: bool = False) -> str:
+        """Executes a command synchronously (iPhone /command, popup quick bar) while syncing UI state."""
         clean = (text or "").strip()
         if not clean:
             return "I didn't hear a command."
@@ -2526,6 +2936,9 @@ class StitchBridgeController:
             self.assistant_state = "ready"
 
         self.last_reply_preview = (reply or "")[:90]
+        if speak and reply and self.tts_worker and self.tts_worker.enabled:
+            self.assistant_state = "speaking"
+            self.tts_worker.speak(reply)
         return reply or "Done."
 
     def get_telemetry(self) -> dict:
@@ -2718,6 +3131,21 @@ def start_bridge_http_server(controller: StitchBridgeController) -> int:
             self.end_headers()
             self.wfile.write(raw)
 
+        def _send_bytes(self, data: bytes, content_type: str, extra_headers: dict | None = None):
+            self.send_response(200)
+            self.send_header("Content-Type", content_type)
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Expose-Headers", "X-Saved-As")
+            for k, v in (extra_headers or {}).items():
+                self.send_header(k, v)
+            self.end_headers()
+            self.wfile.write(data)
+
+        def _requires_auth(self, path: str) -> bool:
+            return path.startswith("/api/") or path == "/command"
+
         def do_OPTIONS(self):
             self.send_response(204)
             self.send_header("Access-Control-Allow-Origin", "*")
@@ -2726,7 +3154,23 @@ def start_bridge_http_server(controller: StitchBridgeController) -> int:
             self.end_headers()
 
         def do_GET(self):
-            path = urlparse(self.path).path
+            parsed = urlparse(self.path)
+            path = parsed.path
+            if self._requires_auth(path) and not self._check_auth():
+                return self._send_json({"detail": "Unauthorized: missing or invalid X-Jarvis-Token."}, 401)
+            if path == "/api/system/screenshot_image":
+                save = parse_qs(parsed.query).get("save", ["0"])[0] == "1"
+                try:
+                    data, saved = tools.capture_screen_jpeg(save_copy=save)
+                except Exception as e:
+                    return self._send_json({"error": f"Capture failed: {e}"}, 500)
+                return self._send_bytes(data, "image/jpeg", {"X-Saved-As": saved} if saved else None)
+            if path == "/api/system/clipboard_get":
+                try:
+                    txt = pyperclip.paste() or ""
+                except Exception:
+                    txt = ""
+                return self._send_json({"text": txt[:20000]})
             if path == "/health":
                 return self._send_json({
                     "status": "ok",
@@ -2779,6 +3223,48 @@ def start_bridge_http_server(controller: StitchBridgeController) -> int:
                 payload = json.loads(body_bytes.decode("utf-8"))
             except Exception:
                 payload = {}
+
+            if self._requires_auth(path) and not self._check_auth():
+                return self._send_json({"detail": "Unauthorized: missing or invalid X-Jarvis-Token."}, 401)
+
+            if path == "/api/chat/ask":
+                reply = controller.run_command_sync(payload.get("text", ""), speak=True)
+                return self._send_json({"reply": reply})
+
+            if path == "/api/clipboard/action":
+                res = tools.run_clipboard_action(
+                    payload.get("action", ""),
+                    payload.get("language") or "English",
+                )
+                if res.get("ok"):
+                    tools.append_chat_log(f"Clipboard: {payload.get('action', '')}", res["message"], ["clipboard_action"])
+                return self._send_json(res)
+
+            if path == "/api/system/open_url":
+                url = str(payload.get("url", "")).strip()
+                if not url or any(c in url for c in ('"', "\n", "\r", " ")):
+                    return self._send_json({"result": "That doesn't look like a valid link."}, 400)
+                if not url.lower().startswith(("http://", "https://")):
+                    url = "https://" + url
+                webbrowser.open(url)
+                return self._send_json({"result": f"Opened {url} on your PC."})
+
+            if path == "/api/remote/mouse":
+                res = tools.remote_mouse(
+                    payload.get("action", "move"),
+                    payload.get("dx", 0),
+                    payload.get("dy", 0),
+                )
+                return self._send_json({"result": res})
+
+            if path == "/api/remote/keyboard":
+                if payload.get("text"):
+                    res = tools.remote_type_text(str(payload["text"])[:2000])
+                elif payload.get("key"):
+                    res = tools.remote_press_keys(str(payload["key"]))
+                else:
+                    res = "Nothing to send."
+                return self._send_json({"result": res})
 
             if path == "/command":
                 if not self._check_auth():
