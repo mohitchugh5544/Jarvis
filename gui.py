@@ -503,7 +503,10 @@ class HotkeyThread(QThread):
         user32.RegisterHotKey(None, 2, self.MOD_CONTROL | self.MOD_ALT, self.VK_SPACE)
         try:
             msg = wintypes.MSG()
-            while user32.GetMessageW(ctypes.byref(msg), None, 0, 0) != 0:
+            while True:
+                ret = user32.GetMessageW(ctypes.byref(msg), None, 0, 0)
+                if ret <= 0:
+                    break
                 if msg.message == self.WM_HOTKEY:
                     if msg.wParam == 1:
                         self.pressed.emit()
@@ -766,6 +769,10 @@ class JarvisStitchApp(QObject):
             self._widget_win.show()
             self._widget_win.raise_()
             self._widget_win.activateWindow()
+            try:
+                ctypes.windll.user32.SetForegroundWindow(int(self._widget_win.winId()))
+            except Exception:
+                pass
         elif action == "minimize":
             win.showMinimized()
         elif action == "toggle_maximize":
@@ -778,6 +785,10 @@ class JarvisStitchApp(QObject):
             self._hub_win.hide()
             self._widget_win.show()
             self._widget_win.raise_()
+            try:
+                ctypes.windll.user32.SetForegroundWindow(int(self._widget_win.winId()))
+            except Exception:
+                pass
 
     def _toggle_visibility(self):
         """Global hotkey (Ctrl+Alt+J) or tray click: toggles popup visibility or returns from Hub to popup."""
@@ -786,18 +797,30 @@ class JarvisStitchApp(QObject):
             self._widget_win.show()
             self._widget_win.raise_()
             self._widget_win.activateWindow()
-        elif self._widget_win.isVisible():
+            try:
+                ctypes.windll.user32.SetForegroundWindow(int(self._widget_win.winId()))
+            except Exception:
+                pass
+        elif self._widget_win.isVisible() and self._widget_win.isActiveWindow():
             self._widget_win.hide()
         else:
             self._widget_win.show()
             self._widget_win.raise_()
             self._widget_win.activateWindow()
+            try:
+                ctypes.windll.user32.SetForegroundWindow(int(self._widget_win.winId()))
+            except Exception:
+                pass
 
     def _on_ptt_pressed(self):
         """Global push-to-talk hotkey (Ctrl+Alt+Space): triggers one-shot listening from anywhere."""
-        if not self._widget_win.isVisible() and not self._hub_win.isVisible():
-            self._widget_win.show()
-            self._widget_win.raise_()
+        self._widget_win.show()
+        self._widget_win.raise_()
+        self._widget_win.activateWindow()
+        try:
+            ctypes.windll.user32.SetForegroundWindow(int(self._widget_win.winId()))
+        except Exception:
+            pass
         self._voice.trigger_push_to_talk()
 
     def _setup_tray(self):
